@@ -1,0 +1,24 @@
+services:
+  - type: web
+    name: paper-reading
+    runtime: docker
+    autoDeploy: true
+    healthCheckPath: /api/health
+    disk:
+      name: paper-data
+      mountPath: /app/data
+      sizeGB: 1
+    envVars:
+      - key: PAPER_ASSISTANT_NETWORK_MODE
+        value: auto
+      - key: PAPER_ASSISTANT_SUMMARY_LANGUAGE
+        value: zh-CN
+      - key: PAPER_ASSISTANT_SCHEDULER_ENABLED
+        value: "1"
+      - key: OPENAI_API_KEY
+        sync: false
+      - key: OPENAI_BASE_URL
+        value: https://api.openai.com/v1
+      - key: OPENAI_MODEL
+        value: gpt-4.1-mini
+

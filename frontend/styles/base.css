@@ -1,0 +1,40 @@
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  min-height: 100%;
+}
+
+body {
+  color: var(--text);
+  font-family: "Avenir Next", "Segoe UI", sans-serif;
+  background:
+    radial-gradient(circle at top left, rgba(255, 210, 145, 0.42), transparent 30%),
+    radial-gradient(circle at top right, rgba(49, 130, 110, 0.22), transparent 30%),
+    linear-gradient(180deg, #f7f2ea 0%, #efe8df 100%);
+}
+
+button,
+input,
+select {
+  font: inherit;
+}
+
+a {
+  color: inherit;
+}
+
+h1,
+h2,
+h3 {
+  margin: 0;
+  font-family: "Iowan Old Style", "Palatino Linotype", serif;
+}
+
+p {
+  margin: 0;
+}
+

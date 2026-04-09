@@ -1,0 +1,6 @@
+__pycache__/
+*.pyc
+.venv/
+data/pycache/
+data/papers.db
+data/*.sqlite3
