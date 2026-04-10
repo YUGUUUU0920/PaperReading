@@ -90,10 +90,12 @@ class Application:
         conference = params.get("conference", [""])[0]
         year_text = params.get("year", [""])[0]
         query = params.get("query", [""])[0]
-        limit_text = params.get("limit", ["120"])[0]
+        limit_text = params.get("limit", ["24"])[0]
+        page_text = params.get("page", ["1"])[0]
         auto_sync_text = params.get("auto_sync", ["1"])[0]
         year = int(year_text) if year_text.strip().isdigit() else None
-        limit = int(limit_text) if limit_text.strip().isdigit() else 120
+        limit = int(limit_text) if limit_text.strip().isdigit() else 24
+        page = int(page_text) if page_text.strip().isdigit() else 1
         auto_sync = auto_sync_text != "0"
         try:
             payload = self.container.paper_service.search_papers(
@@ -101,6 +103,7 @@ class Application:
                 year=year,
                 query=query,
                 limit=limit,
+                page=page,
                 auto_sync=auto_sync,
             )
         except Exception as exc:

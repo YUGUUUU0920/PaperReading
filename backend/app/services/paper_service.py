@@ -27,19 +27,34 @@ class PaperService:
         conference: str = "",
         year: int | None = None,
         query: str = "",
-        limit: int = 120,
+        limit: int = 24,
+        page: int = 1,
         auto_sync: bool = True,
     ) -> dict:
+        page = max(page, 1)
+        limit = min(max(limit, 1), 60)
         dataset = None
         if auto_sync and conference and year:
             dataset = self.sync_service.ensure_dataset_loaded(conference, year)
         elif conference and year:
             dataset = self.repository.get_dataset(conference, year) or self.repository.ensure_dataset_from_existing_data(conference, year)
 
-        items = self.repository.search_papers(query=query, conference=conference, year=year, limit=limit)
+        total = self.repository.count_search_papers(query=query, conference=conference, year=year)
+        offset = (page - 1) * limit
+        items = self.repository.search_papers(
+            query=query,
+            conference=conference,
+            year=year,
+            limit=limit,
+            offset=offset,
+        )
         return {
-            "items": [item.to_dict() for item in items],
+            "items": [self._serialize_paper(item) for item in items],
             "count": len(items),
+            "total": total,
+            "page": page,
+            "page_size": limit,
+            "has_next": offset + len(items) < total,
             "dataset": dataset.to_dict() if dataset else None,
         }
 
@@ -52,7 +67,7 @@ class PaperService:
             summary = self.summary_service.build_local_summary(paper)
             self.repository.update_summary(paper.id, summary, "heuristic-auto", utc_now_iso())
             paper = self.repository.get_paper(paper.id) or paper
-        return paper.to_dict()
+        return self._serialize_paper(paper)
 
     def summarize_paper(self, paper_id: int) -> dict:
         paper = self.repository.get_paper(paper_id)
@@ -64,7 +79,7 @@ class PaperService:
         refreshed = self.repository.get_paper(paper_id)
         if not refreshed:
             raise KeyError(f"Paper {paper_id} not found after summary update")
-        return refreshed.to_dict()
+        return self._serialize_paper(refreshed)
 
     def refresh_dataset(self, conference: str, year: int) -> dict:
         dataset = self.sync_service.refresh_dataset(conference, year)
@@ -90,3 +105,8 @@ class PaperService:
             last_synced_at=hydrated.last_synced_at or utc_now_iso(),
         )
         return self.repository.get_paper(hydrated.id) or hydrated
+
+    def _serialize_paper(self, paper: Paper) -> dict:
+        payload = paper.to_dict()
+        payload["summary_preview"] = self.summary_service.build_preview(paper)
+        return payload

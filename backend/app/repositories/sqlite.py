@@ -126,7 +126,59 @@ class SqliteRepository:
         conference: str = "",
         year: int | None = None,
         limit: int = 100,
+        offset: int = 0,
     ) -> list[Paper]:
+        where_sql, params = self._build_search_where(query=query, conference=conference, year=year)
+        params.extend([max(limit, 1), max(offset, 0)])
+
+        with self._connect() as connection:
+            rows = connection.execute(
+                f"""
+                SELECT *
+                FROM papers
+                {where_sql}
+                ORDER BY year DESC, conference ASC, title COLLATE NOCASE ASC
+                LIMIT ?
+                OFFSET ?
+                """,
+                params,
+            ).fetchall()
+        return [self._row_to_paper(row) for row in rows]
+
+    def count_search_papers(
+        self,
+        *,
+        query: str = "",
+        conference: str = "",
+        year: int | None = None,
+    ) -> int:
+        where_sql, params = self._build_search_where(query=query, conference=conference, year=year)
+        with self._connect() as connection:
+            row = connection.execute(
+                f"""
+                SELECT COUNT(*) AS count
+                FROM papers
+                {where_sql}
+                """,
+                params,
+            ).fetchone()
+        return int(row["count"]) if row else 0
+
+    def count_papers(self, *, conference: str, year: int) -> int:
+        with self._connect() as connection:
+            row = connection.execute(
+                "SELECT COUNT(*) AS count FROM papers WHERE conference = ? AND year = ?",
+                (conference.lower(), year),
+            ).fetchone()
+        return int(row["count"]) if row else 0
+
+    def _build_search_where(
+        self,
+        *,
+        query: str = "",
+        conference: str = "",
+        year: int | None = None,
+    ) -> tuple[str, list[object]]:
         clauses = []
         params: list[object] = []
 
@@ -144,28 +196,7 @@ class SqliteRepository:
             params.append(year)
 
         where_sql = f"WHERE {' AND '.join(clauses)}" if clauses else ""
-        params.append(limit)
-
-        with self._connect() as connection:
-            rows = connection.execute(
-                f"""
-                SELECT *
-                FROM papers
-                {where_sql}
-                ORDER BY year DESC, conference ASC, title COLLATE NOCASE ASC
-                LIMIT ?
-                """,
-                params,
-            ).fetchall()
-        return [self._row_to_paper(row) for row in rows]
-
-    def count_papers(self, *, conference: str, year: int) -> int:
-        with self._connect() as connection:
-            row = connection.execute(
-                "SELECT COUNT(*) AS count FROM papers WHERE conference = ? AND year = ?",
-                (conference.lower(), year),
-            ).fetchone()
-        return int(row["count"]) if row else 0
+        return where_sql, params
 
     def get_paper(self, paper_id: int) -> Paper | None:
         with self._connect() as connection:
@@ -313,4 +344,3 @@ class SqliteRepository:
             last_error=row["last_error"],
             updated_at=row["updated_at"],
         )
-

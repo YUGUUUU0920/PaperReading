@@ -21,12 +21,13 @@ export const apiClient = {
     return request("/api/datasets");
   },
 
-  searchPapers({ conference, year, query, limit = 120, autoSync = true }) {
+  searchPapers({ conference, year, query, limit = 24, page = 1, autoSync = true }) {
     const params = new URLSearchParams();
     if (conference) params.set("conference", conference);
     if (year) params.set("year", String(year));
     if (query) params.set("query", query);
     params.set("limit", String(limit));
+    params.set("page", String(page));
     params.set("auto_sync", autoSync ? "1" : "0");
     return request(`/api/papers?${params.toString()}`);
   },

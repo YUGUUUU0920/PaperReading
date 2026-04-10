@@ -95,7 +95,8 @@
 
 @media (max-width: 1120px) {
   .toolbar,
-  .workspace {
+  .workspace,
+  .welcome-grid {
     grid-template-columns: 1fr;
   }
 }
@@ -128,6 +129,11 @@
 
   .top-nav {
     padding: 16px 18px;
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .list-footer {
     flex-direction: column;
     align-items: flex-start;
   }

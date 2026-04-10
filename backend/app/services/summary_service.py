@@ -10,6 +10,9 @@ from backend.app.domain.entities import Paper
 
 SENTENCE_RE = re.compile(r"(?<=[.!?])\s+")
 ASCII_WORD_RE = re.compile(r"[A-Za-z]{4,}")
+MARKDOWN_TOKEN_RE = re.compile(r"[#>*`_~\-]+")
+WHITESPACE_RE = re.compile(r"\s+")
+SECTION_LABEL_RE = re.compile(r"^(研究问题|方法概览|主要发现|适用场景|一句话判断)\s*")
 
 TOPIC_HINTS = [
     ("multimodal", "多模态模型"),
@@ -104,6 +107,18 @@ class SummaryService:
     def build_local_summary(self, paper: Paper) -> str:
         return self._heuristic_summary(paper)
 
+    def build_preview(self, paper: Paper) -> str:
+        summary = paper.summary.strip()
+        if summary:
+            preview = self._preview_from_summary(summary)
+            if preview:
+                return preview
+        if paper.abstract.strip():
+            topic = self._infer_topic(paper)
+            goal = self._infer_goal(paper)
+            return f"聚焦{topic}，重点尝试{goal}，适合先看方法设计和核心实验。"
+        return "打开详情页后会自动补全摘要，并生成中文总结。"
+
     def should_refresh_local_summary(self, paper: Paper) -> bool:
         if not paper.summary.strip():
             return True
@@ -144,6 +159,21 @@ class SummaryService:
             "### 一句话判断\n"
             f"这是一篇围绕{topic}展开、重点尝试{goal}的论文，值得先看摘要、方法图和实验表。"
         )
+
+    def _preview_from_summary(self, summary: str) -> str:
+        paragraphs = [part.strip() for part in summary.split("\n\n") if part.strip()]
+        for paragraph in paragraphs:
+            text = MARKDOWN_TOKEN_RE.sub(" ", paragraph)
+            text = WHITESPACE_RE.sub(" ", text).strip()
+            text = SECTION_LABEL_RE.sub("", text).strip()
+            if len(text) < 18:
+                continue
+            if text in {"研究问题", "方法概览", "主要发现", "适用场景", "一句话判断"}:
+                continue
+            if len(text) > 88:
+                return f"{text[:88].rstrip('，。；;、 ')}..."
+            return text
+        return ""
 
     def _infer_topic(self, paper: Paper) -> str:
         haystack = f"{paper.title} {paper.abstract}".lower()

@@ -13,10 +13,10 @@ export function renderSearchToolbar(state) {
     <section class="toolbar panel">
       <div class="toolbar-copy">
         <p class="eyebrow">Research Console</p>
-        <h1>搜索页只保留检索，详情拆到独立页面</h1>
+        <h1>面向公网访问的 AI 顶会论文助手</h1>
         <p class="toolbar-text">
-          现在搜索时会自动从官方站点拉取并缓存当前会议年份的数据。
-          点开论文会跳到单独详情页，不再把摘要和总结挤在右下角长栏里。
+          现在改成按需搜索、分页浏览和中文预览。
+          第一次访问不会强制拉整库数据，点开论文会进入独立详情页查看完整摘要与中文总结。
         </p>
       </div>
       <form id="search-form" class="search-form">

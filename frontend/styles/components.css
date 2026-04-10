@@ -57,7 +57,8 @@
 .authors,
 .preview,
 .status-banner p,
-.empty-card p {
+.empty-card p,
+.pagination-note {
   color: var(--muted);
   line-height: 1.7;
 }
@@ -216,6 +217,29 @@ select:focus {
   display: grid;
   gap: 12px;
   grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+}
+
+.welcome-grid {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: minmax(280px, 1.1fr) repeat(3, minmax(220px, 1fr));
+}
+
+.summary-preview {
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+}
+
+.list-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid rgba(21, 111, 99, 0.08);
 }
 
 .error-text {
