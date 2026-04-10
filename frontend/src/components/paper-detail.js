@@ -11,6 +11,19 @@ function renderTags(tags = []) {
   `;
 }
 
+function renderSaveActions(activePaper) {
+  return `
+    <div class="save-actions">
+      <button class="button button-chip ${activePaper.saved?.favorite ? "active" : ""}" type="button" data-save-toggle="${activePaper.id}:favorite:${activePaper.saved?.favorite ? "0" : "1"}">
+        ${activePaper.saved?.favorite ? "已收藏" : "收藏"}
+      </button>
+      <button class="button button-chip ${activePaper.saved?.reading ? "active" : ""}" type="button" data-save-toggle="${activePaper.id}:reading:${activePaper.saved?.reading ? "0" : "1"}">
+        ${activePaper.saved?.reading ? "已在待读" : "加入待读"}
+      </button>
+    </div>
+  `;
+}
+
 function renderSignals(activePaper) {
   const items = [];
   if (activePaper.citation_count) items.push(`被引 ${activePaper.citation_count}`);
@@ -118,6 +131,7 @@ export function renderPaperDetail(state) {
         ${activePaper.paper_url ? `<a class="button button-ghost" href="${escapeHtml(activePaper.paper_url)}" target="_blank" rel="noreferrer">官方详情</a>` : ""}
         ${activePaper.pdf_url ? `<a class="button button-secondary" href="${escapeHtml(activePaper.pdf_url)}" target="_blank" rel="noreferrer">打开 PDF</a>` : ""}
       </div>
+      ${renderSaveActions(activePaper)}
 
       ${renderResources(activePaper)}
 

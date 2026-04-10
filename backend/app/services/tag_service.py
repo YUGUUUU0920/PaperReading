@@ -49,8 +49,49 @@ CONCEPT_RULES = [
     ("reinforcement learning", "强化学习"),
 ]
 
+TAG_CATALOG = [
+    "大模型",
+    "多模态",
+    "RAG",
+    "智能体",
+    "强化学习",
+    "扩散模型",
+    "图学习",
+    "视频理解",
+    "语音音频",
+    "时间序列",
+    "机器人",
+    "联邦学习",
+    "推荐系统",
+    "推理",
+    "对齐",
+    "代码生成",
+    "隐私安全",
+    "医疗AI",
+    "基准评测",
+    "数据集",
+    "评测分析",
+    "世界模型",
+    "计算机视觉",
+    "自然语言处理",
+    "开源了代码",
+    "开放获取",
+    "开源模型",
+    "含 OpenReview",
+    "引用量高",
+    "高被引",
+    "新晋热门",
+    "影响力强",
+    "口头报告",
+    "Spotlight",
+    "Findings",
+]
+
 
 class TagService:
+    def catalog_tags(self) -> list[str]:
+        return TAG_CATALOG[:]
+
     def build_tags(self, paper: Paper) -> list[str]:
         metadata = paper.metadata or {}
         haystack = f"{paper.title} {paper.abstract}".lower()

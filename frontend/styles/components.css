@@ -136,6 +136,18 @@ select:focus {
   border: 1px solid rgba(21, 111, 99, 0.2);
 }
 
+.button-chip {
+  background: rgba(14, 85, 75, 0.08);
+  color: var(--accent-strong);
+  border: 1px solid rgba(21, 111, 99, 0.12);
+  padding: 10px 14px;
+}
+
+.button-chip.active {
+  background: rgba(14, 85, 75, 0.14);
+  border-color: rgba(21, 111, 99, 0.28);
+}
+
 .pill,
 .counter {
   display: inline-flex;
@@ -148,6 +160,11 @@ select:focus {
   color: var(--accent-strong);
   font-size: 13px;
   font-weight: 700;
+}
+
+button.pill {
+  border: 0;
+  cursor: pointer;
 }
 
 .pill--warm {
@@ -253,10 +270,23 @@ select:focus {
 .tag-row,
 .signal-row,
 .resource-grid,
-.related-list {
+.related-list,
+.save-actions,
+.quick-filter-row {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
+}
+
+.quick-filter-row {
+  margin-top: 12px;
+  align-items: center;
+}
+
+.quick-filter-label {
+  font-size: 13px;
+  color: var(--muted);
+  font-weight: 600;
 }
 
 .signal {
@@ -308,6 +338,11 @@ select:focus {
   transform: translateY(-2px);
   border-color: rgba(21, 111, 99, 0.28);
   box-shadow: 0 12px 26px rgba(53, 40, 29, 0.08);
+}
+
+.pill--active {
+  background: rgba(21, 111, 99, 0.18);
+  border-color: rgba(21, 111, 99, 0.18);
 }
 
 .list-footer {

@@ -60,6 +60,17 @@ class SqliteRepository:
                     updated_at TEXT NOT NULL DEFAULT '',
                     PRIMARY KEY (conference, year)
                 );
+
+                CREATE TABLE IF NOT EXISTS saved_entries (
+                    paper_id INTEGER NOT NULL,
+                    list_type TEXT NOT NULL,
+                    created_at TEXT NOT NULL DEFAULT '',
+                    updated_at TEXT NOT NULL DEFAULT '',
+                    PRIMARY KEY (paper_id, list_type)
+                );
+
+                CREATE INDEX IF NOT EXISTS idx_saved_entries_list_type
+                ON saved_entries(list_type, updated_at DESC);
                 """
             )
 
@@ -167,6 +178,26 @@ class SqliteRepository:
                 params,
             ).fetchone()
         return int(row["count"]) if row else 0
+
+    def list_matching_papers(
+        self,
+        *,
+        query: str = "",
+        conference: str = "",
+        year: int | None = None,
+    ) -> list[Paper]:
+        where_sql, params = self._build_search_where(query=query, conference=conference, year=year)
+        with self._connect() as connection:
+            rows = connection.execute(
+                f"""
+                SELECT *
+                FROM papers
+                {where_sql}
+                ORDER BY year DESC, conference ASC, title COLLATE NOCASE ASC
+                """,
+                params,
+            ).fetchall()
+        return [self._row_to_paper(row) for row in rows]
 
     def count_papers(self, *, conference: str, year: int) -> int:
         with self._connect() as connection:
@@ -301,6 +332,75 @@ class SqliteRepository:
                 """
             ).fetchall()
         return [self._row_to_dataset(row) for row in rows]
+
+    def set_saved_state(self, paper_id: int, list_type: str, enabled: bool) -> None:
+        normalized = list_type.strip().lower()
+        if normalized not in {"favorite", "reading"}:
+            raise ValueError(f"Unsupported list_type: {list_type}")
+        timestamp = utc_now_iso()
+        with self._connect() as connection:
+            if enabled:
+                connection.execute(
+                    """
+                    INSERT INTO saved_entries (paper_id, list_type, created_at, updated_at)
+                    VALUES (?, ?, ?, ?)
+                    ON CONFLICT(paper_id, list_type) DO UPDATE SET
+                        updated_at = excluded.updated_at
+                    """,
+                    (paper_id, normalized, timestamp, timestamp),
+                )
+            else:
+                connection.execute(
+                    "DELETE FROM saved_entries WHERE paper_id = ? AND list_type = ?",
+                    (paper_id, normalized),
+                )
+
+    def get_saved_states(self, paper_ids: list[int]) -> dict[int, set[str]]:
+        if not paper_ids:
+            return {}
+        placeholders = ",".join("?" for _ in paper_ids)
+        with self._connect() as connection:
+            rows = connection.execute(
+                f"""
+                SELECT paper_id, list_type
+                FROM saved_entries
+                WHERE paper_id IN ({placeholders})
+                """,
+                paper_ids,
+            ).fetchall()
+        states: dict[int, set[str]] = {}
+        for row in rows:
+            states.setdefault(int(row["paper_id"]), set()).add(str(row["list_type"]))
+        return states
+
+    def list_saved_papers(self, list_type: str) -> list[Paper]:
+        normalized = list_type.strip().lower()
+        if normalized not in {"favorite", "reading"}:
+            raise ValueError(f"Unsupported list_type: {list_type}")
+        with self._connect() as connection:
+            rows = connection.execute(
+                """
+                SELECT p.*
+                FROM saved_entries AS s
+                JOIN papers AS p
+                    ON p.id = s.paper_id
+                WHERE s.list_type = ?
+                ORDER BY s.updated_at DESC, p.year DESC, p.title COLLATE NOCASE ASC
+                """,
+                (normalized,),
+            ).fetchall()
+        return [self._row_to_paper(row) for row in rows]
+
+    def count_saved(self, list_type: str) -> int:
+        normalized = list_type.strip().lower()
+        if normalized not in {"favorite", "reading"}:
+            raise ValueError(f"Unsupported list_type: {list_type}")
+        with self._connect() as connection:
+            row = connection.execute(
+                "SELECT COUNT(*) AS count FROM saved_entries WHERE list_type = ?",
+                (normalized,),
+            ).fetchone()
+        return int(row["count"]) if row else 0
 
     def ensure_dataset_from_existing_data(self, conference: str, year: int) -> DatasetStatus | None:
         count = self.count_papers(conference=conference, year=year)

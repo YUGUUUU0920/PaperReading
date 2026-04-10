@@ -21,11 +21,17 @@ export const apiClient = {
     return request("/api/datasets");
   },
 
-  searchPapers({ conference, year, query, limit = 24, page = 1, autoSync = true }) {
+  getSavedLists() {
+    return request("/api/lists");
+  },
+
+  searchPapers({ conference, year, query, tag, sort = "default", limit = 24, page = 1, autoSync = true }) {
     const params = new URLSearchParams();
     if (conference) params.set("conference", conference);
     if (year) params.set("year", String(year));
     if (query) params.set("query", query);
+    if (tag) params.set("tag", tag);
+    if (sort && sort !== "default") params.set("sort", sort);
     params.set("limit", String(limit));
     params.set("page", String(page));
     params.set("auto_sync", autoSync ? "1" : "0");
@@ -47,6 +53,13 @@ export const apiClient = {
     return request("/api/datasets/refresh", {
       method: "POST",
       body: JSON.stringify({ conference, year }),
+    });
+  },
+
+  toggleSavedPaper({ paperId, listType, enabled }) {
+    return request("/api/lists/toggle", {
+      method: "POST",
+      body: JSON.stringify({ paper_id: paperId, list_type: listType, enabled }),
     });
   },
 };

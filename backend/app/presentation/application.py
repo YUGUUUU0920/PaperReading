@@ -26,7 +26,7 @@ class Application:
         path = parsed.path
 
         if method == "GET":
-            if path in {"/", "/papers", "/paper", "/datasets"} or path.startswith("/frontend/"):
+            if path in {"/", "/papers", "/paper", "/datasets", "/lists"} or path.startswith("/frontend/"):
                 return self._serve_frontend(path)
             if path == "/api/health":
                 return self._json_response({"ok": True})
@@ -37,6 +37,8 @@ class Application:
                 return self._handle_search(parsed.query)
             if path == "/api/datasets":
                 return self._handle_list_datasets()
+            if path == "/api/lists":
+                return self._handle_list_saved_papers()
             if path.startswith("/api/papers/"):
                 return self._handle_get_paper(path)
             return self._json_response(
@@ -47,6 +49,8 @@ class Application:
         if method == "POST":
             if path == "/api/datasets/refresh":
                 return self._handle_refresh_dataset(body)
+            if path == "/api/lists/toggle":
+                return self._handle_toggle_saved(body)
             if path.startswith("/api/papers/") and path.endswith("/summarize"):
                 return self._handle_summarize(path)
             return self._json_response(
@@ -65,6 +69,7 @@ class Application:
             "/papers": self.container.settings.frontend_root / "index.html",
             "/paper": self.container.settings.frontend_root / "paper.html",
             "/datasets": self.container.settings.frontend_root / "datasets.html",
+            "/lists": self.container.settings.frontend_root / "lists.html",
         }
         if path in route_map:
             file_path = route_map[path]
@@ -90,6 +95,8 @@ class Application:
         conference = params.get("conference", [""])[0]
         year_text = params.get("year", [""])[0]
         query = params.get("query", [""])[0]
+        tag = params.get("tag", [""])[0]
+        sort = params.get("sort", ["default"])[0]
         limit_text = params.get("limit", ["24"])[0]
         page_text = params.get("page", ["1"])[0]
         auto_sync_text = params.get("auto_sync", ["1"])[0]
@@ -102,6 +109,8 @@ class Application:
                 conference=conference,
                 year=year,
                 query=query,
+                tag=tag,
+                sort=sort,
                 limit=limit,
                 page=page,
                 auto_sync=auto_sync,
@@ -138,6 +147,11 @@ class Application:
     def _handle_list_datasets(self) -> Response:
         items = self.container.paper_service.list_datasets()
         return self._json_response({"ok": True, "items": items, "count": len(items)})
+
+    def _handle_list_saved_papers(self) -> Response:
+        payload = self.container.paper_service.list_saved_papers()
+        payload["ok"] = True
+        return self._json_response(payload)
 
     def _handle_summarize(self, path: str) -> Response:
         paper_id = self._extract_paper_id(path)
@@ -183,6 +197,36 @@ class Application:
                 status=HTTPStatus.BAD_GATEWAY,
             )
         return self._json_response({"ok": True, "dataset": dataset})
+
+    def _handle_toggle_saved(self, body: bytes) -> Response:
+        try:
+            payload = self._decode_json_body(body)
+        except ValueError as exc:
+            return self._json_response(
+                {"ok": False, "error": str(exc)},
+                status=HTTPStatus.BAD_REQUEST,
+            )
+        paper_id = int(payload.get("paper_id", 0))
+        list_type = str(payload.get("list_type", "")).strip().lower()
+        enabled = bool(payload.get("enabled", False))
+        if not paper_id or list_type not in {"favorite", "reading"}:
+            return self._json_response(
+                {"ok": False, "error": "paper_id and valid list_type are required"},
+                status=HTTPStatus.BAD_REQUEST,
+            )
+        try:
+            item = self.container.paper_service.set_saved_state(paper_id, list_type, enabled)
+        except KeyError as exc:
+            return self._json_response(
+                {"ok": False, "error": str(exc)},
+                status=HTTPStatus.NOT_FOUND,
+            )
+        except Exception as exc:
+            return self._json_response(
+                {"ok": False, "error": str(exc)},
+                status=HTTPStatus.BAD_GATEWAY,
+            )
+        return self._json_response({"ok": True, "item": item})
 
     def _extract_paper_id(self, path: str) -> int | None:
         parts = [part for part in path.split("/") if part]

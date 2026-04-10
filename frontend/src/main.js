@@ -17,11 +17,14 @@ const store = createStore({
     conference: "icml",
     year: 2025,
     query: "",
+    tag: "",
+    sort: "default",
     page: 1,
   },
   message: "准备就绪。选择会议、年份和关键词后开始检索。",
   dataset: null,
   papers: [],
+  resultTags: [],
   total: 0,
   pageSize: 24,
   hasNext: false,
@@ -57,6 +60,8 @@ function bindEvents() {
         conference: String(form.get("conference") || "").trim(),
         year: Number(form.get("year") || 0),
         query: String(form.get("query") || "").trim(),
+        tag: String(form.get("tag") || "").trim(),
+        sort: String(form.get("sort") || "default").trim() || "default",
         page: 1,
       };
       store.setState({ filters });
@@ -100,18 +105,60 @@ function bindEvents() {
       await runSearch({ refresh: false });
     });
   });
+
+  qsa("[data-filter-tag]").forEach((button) => {
+    button.addEventListener("click", async () => {
+      const tag = String(button.getAttribute("data-filter-tag") || "").trim();
+      const { filters, loading } = store.getState();
+      if (loading) return;
+      store.setState({
+        filters: {
+          ...filters,
+          tag: filters.tag === tag ? "" : tag,
+          page: 1,
+        },
+      });
+      await runSearch({ refresh: false });
+    });
+  });
+
+  qsa("[data-save-toggle]").forEach((button) => {
+    button.addEventListener("click", async () => {
+      const raw = String(button.getAttribute("data-save-toggle") || "");
+      const [paperIdText, listType, enabledText] = raw.split(":");
+      const paperId = Number(paperIdText || 0);
+      const enabled = enabledText === "1";
+      if (!paperId || !listType) return;
+      store.setState({ message: enabled ? "正在加入列表..." : "正在移出列表..." });
+      render();
+      try {
+        const data = await apiClient.toggleSavedPaper({ paperId, listType, enabled });
+        const papers = store.getState().papers.map((paper) => (paper.id === paperId ? data.item : paper));
+        store.setState({
+          papers,
+          message: enabled ? "已更新列表。" : "已移出列表。",
+        });
+      } catch (error) {
+        store.setState({ message: error.message });
+      } finally {
+        render();
+      }
+    });
+  });
 }
 
 async function bootstrap() {
   const data = await apiClient.getBootstrap();
   const params = readSearchParams();
-  const hasExplicitSearch = ["conference", "year", "query", "page"].some((key) => params.has(key));
+  const hasExplicitSearch = ["conference", "year", "query", "tag", "sort", "page"].some((key) => params.has(key));
   const year = Number(params.get("year") || data.defaults.year) || data.defaults.year;
   const page = Math.max(1, Number(params.get("page") || 1) || 1);
   const filters = {
     conference: params.get("conference") || data.defaults.conference,
     year,
     query: params.get("query") || "",
+    tag: params.get("tag") || data.defaults.tag || "",
+    sort: params.get("sort") || data.defaults.sort || "default",
     page,
   };
   store.setState({
@@ -140,6 +187,8 @@ async function runSearch({ refresh }) {
       conference: filters.conference,
       year: filters.year,
       query: filters.query,
+      tag: filters.tag,
+      sort: filters.sort,
       page: filters.page,
       limit: store.getState().pageSize,
       autoSync: true,
@@ -147,6 +196,7 @@ async function runSearch({ refresh }) {
     store.setState({
       papers: data.items,
       dataset: data.dataset,
+      resultTags: data.result_tags || [],
       total: data.total || 0,
       pageSize: data.page_size || store.getState().pageSize,
       hasNext: Boolean(data.has_next),
@@ -158,6 +208,7 @@ async function runSearch({ refresh }) {
     store.setState({
       message: error.message,
       papers: [],
+      resultTags: [],
       total: 0,
       hasNext: false,
     });

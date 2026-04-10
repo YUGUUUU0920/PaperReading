@@ -37,27 +37,51 @@ function render() {
 
 function bindEvents() {
   const summarizeButton = qs("#summarize-paper-button");
-  if (!summarizeButton) return;
-  summarizeButton.addEventListener("click", async () => {
-    const paper = store.getState().activePaper;
-    if (!paper) return;
-    store.setState({
-      loadingSummary: true,
-      message: "正在生成中文导读...",
-    });
-    render();
-    try {
-      const data = await apiClient.summarizePaper(paper.id);
+  if (summarizeButton) {
+    summarizeButton.addEventListener("click", async () => {
+      const paper = store.getState().activePaper;
+      if (!paper) return;
       store.setState({
-        activePaper: data.item,
-        message: "中文导读已更新。",
+        loadingSummary: true,
+        message: "正在生成中文导读...",
       });
-    } catch (error) {
-      store.setState({ message: error.message });
-    } finally {
-      store.setState({ loadingSummary: false });
       render();
-    }
+      try {
+        const data = await apiClient.summarizePaper(paper.id);
+        store.setState({
+          activePaper: data.item,
+          message: "中文导读已更新。",
+        });
+      } catch (error) {
+        store.setState({ message: error.message });
+      } finally {
+        store.setState({ loadingSummary: false });
+        render();
+      }
+    });
+  }
+
+  document.querySelectorAll("[data-save-toggle]").forEach((button) => {
+    button.addEventListener("click", async () => {
+      const raw = String(button.getAttribute("data-save-toggle") || "");
+      const [paperIdText, listType, enabledText] = raw.split(":");
+      const paperId = Number(paperIdText || 0);
+      const enabled = enabledText === "1";
+      if (!paperId || !listType) return;
+      store.setState({ message: enabled ? "正在加入列表..." : "正在移出列表..." });
+      render();
+      try {
+        const data = await apiClient.toggleSavedPaper({ paperId, listType, enabled });
+        store.setState({
+          activePaper: data.item,
+          message: enabled ? "已更新列表。" : "已移出列表。",
+        });
+      } catch (error) {
+        store.setState({ message: error.message });
+      } finally {
+        render();
+      }
+    });
   });
 }
 
@@ -75,6 +99,8 @@ async function bootstrap() {
     conference: params.get("conference") || bootstrapData.defaults.conference,
     year: Number(params.get("year") || bootstrapData.defaults.year),
     query: params.get("query") || "",
+    tag: params.get("tag") || bootstrapData.defaults.tag || "",
+    sort: params.get("sort") || bootstrapData.defaults.sort || "default",
   };
   store.setState({
     bootstrap: bootstrapData,

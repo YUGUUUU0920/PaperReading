@@ -42,9 +42,9 @@ def build_container() -> AppContainer:
         "iclr": ICLRSource(http_client),
         "icml": ICMLSource(http_client),
     }
-    catalog_service = CatalogService(settings)
-    sync_service = SyncService(settings, repository, sources)
     tag_service = TagService()
+    catalog_service = CatalogService(settings, tag_service)
+    sync_service = SyncService(settings, repository, sources)
     enrichment_service = EnrichmentService(settings, http_client)
     summary_service = SummaryService(settings, http_client, tag_service)
     paper_service = PaperService(repository, sync_service, summary_service, enrichment_service, tag_service, sources)

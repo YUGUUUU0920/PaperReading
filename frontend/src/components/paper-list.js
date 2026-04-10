@@ -1,13 +1,17 @@
 import { escapeHtml } from "../utils/dom.js";
 import { buildPaperUrl } from "../utils/url.js";
 
-function renderTagRow(tags = []) {
+function renderTagRow(tags = [], { activeTag = "", clickable = false } = {}) {
   if (!tags.length) return "";
   return `
     <div class="tag-row">
       ${tags
         .slice(0, 6)
-        .map((tag) => `<span class="pill pill--tag">${escapeHtml(tag)}</span>`)
+        .map((tag) =>
+          clickable
+            ? `<button class="pill pill--tag ${tag === activeTag ? "pill--active" : ""}" type="button" data-filter-tag="${escapeHtml(tag)}">${escapeHtml(tag)}</button>`
+            : `<span class="pill pill--tag">${escapeHtml(tag)}</span>`,
+        )
         .join("")}
     </div>
   `;
@@ -23,6 +27,19 @@ function renderSignalRow(paper) {
   return `
     <div class="signal-row">
       ${signals.map((item) => `<span class="signal">${escapeHtml(item)}</span>`).join("")}
+    </div>
+  `;
+}
+
+function renderSaveActions(paper) {
+  return `
+    <div class="save-actions">
+      <button class="button button-chip ${paper.saved?.favorite ? "active" : ""}" type="button" data-save-toggle="${paper.id}:favorite:${paper.saved?.favorite ? "0" : "1"}">
+        ${paper.saved?.favorite ? "已收藏" : "收藏"}
+      </button>
+      <button class="button button-chip ${paper.saved?.reading ? "active" : ""}" type="button" data-save-toggle="${paper.id}:reading:${paper.saved?.reading ? "0" : "1"}">
+        ${paper.saved?.reading ? "已在待读" : "加入待读"}
+      </button>
     </div>
   `;
 }
@@ -68,7 +85,7 @@ function renderQuickStart(state) {
 }
 
 export function renderPaperList(state) {
-  const { papers, filters, loading, total, pageSize, hasSearched, hasNext } = state;
+  const { papers, filters, loading, total, pageSize, hasSearched, hasNext, resultTags } = state;
   const count = papers.length;
   const currentPage = Number(filters.page || 1);
   const totalPages = total ? Math.max(1, Math.ceil(total / pageSize)) : 0;
@@ -103,13 +120,14 @@ export function renderPaperList(state) {
               <h3>${escapeHtml(paper.title_display || paper.title)}</h3>
               <p class="authors">${escapeHtml(paper.authors_text)}</p>
               ${renderSignalRow(paper)}
-              ${renderTagRow(paper.tags || [])}
+              ${renderTagRow(paper.tags || [], { activeTag: filters.tag, clickable: true })}
               <p class="preview summary-preview">${escapeHtml(preview)}</p>
               <div class="card-actions">
                 <a class="button button-primary" href="${href}">查看详情</a>
                 ${paper.pdf_url ? `<a class="button button-ghost" href="${escapeHtml(paper.pdf_url)}" target="_blank" rel="noreferrer">打开 PDF</a>` : ""}
                 ${paper.code_url ? `<a class="button button-ghost" href="${escapeHtml(paper.code_url)}" target="_blank" rel="noreferrer">代码</a>` : ""}
               </div>
+              ${renderSaveActions(paper)}
             </article>
           `;
         })
@@ -125,6 +143,19 @@ export function renderPaperList(state) {
         <div>
           <h2>论文列表</h2>
           <p>${loading ? "正在整理检索结果..." : `共找到 ${total} 篇，当前页展示 ${count} 篇`}</p>
+          ${
+            resultTags?.length
+              ? `<div class="quick-filter-row">
+                   <span class="quick-filter-label">热门标签</span>
+                   ${resultTags
+                     .map(
+                       (tag) =>
+                         `<button class="pill pill--tag ${tag === filters.tag ? "pill--active" : ""}" type="button" data-filter-tag="${escapeHtml(tag)}">${escapeHtml(tag)}</button>`,
+                     )
+                     .join("")}
+                 </div>`
+              : ""
+          }
         </div>
         <span class="counter">${count}</span>
       </div>

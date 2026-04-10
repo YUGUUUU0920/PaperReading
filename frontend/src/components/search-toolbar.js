@@ -8,6 +8,19 @@ export function renderSearchToolbar(state) {
       return `<option value="${escapeHtml(item.code)}" ${selected}>${escapeHtml(item.label)}</option>`;
     })
     .join("");
+  const tagOptions = [
+    `<option value="">全部标签</option>`,
+    ...((bootstrap.tagOptions || []).map((tag) => {
+      const selected = tag === filters.tag ? "selected" : "";
+      return `<option value="${escapeHtml(tag)}" ${selected}>${escapeHtml(tag)}</option>`;
+    })),
+  ].join("");
+  const sortOptions = (bootstrap.sortOptions || [])
+    .map((item) => {
+      const selected = item.value === filters.sort ? "selected" : "";
+      return `<option value="${escapeHtml(item.value)}" ${selected}>${escapeHtml(item.label)}</option>`;
+    })
+    .join("");
 
   return `
     <section class="toolbar panel">
@@ -32,6 +45,18 @@ export function renderSearchToolbar(state) {
         <label class="query-field">
           <span>关键词</span>
           <input name="query" type="search" value="${escapeHtml(filters.query)}" placeholder="标题、作者、摘要">
+        </label>
+        <label>
+          <span>标签</span>
+          <select name="tag">
+            ${tagOptions}
+          </select>
+        </label>
+        <label>
+          <span>排序</span>
+          <select name="sort">
+            ${sortOptions}
+          </select>
         </label>
         <div class="toolbar-actions">
           <button type="submit" class="button button-primary" ${loading ? "disabled" : ""}>搜索论文</button>

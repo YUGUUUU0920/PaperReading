@@ -2,6 +2,7 @@ export function renderTopNav(active) {
   const items = [
     { key: "papers", href: "/", label: "论文检索" },
     { key: "datasets", href: "/datasets", label: "论文库" },
+    { key: "lists", href: "/lists", label: "收藏与待读" },
   ];
 
   return `
