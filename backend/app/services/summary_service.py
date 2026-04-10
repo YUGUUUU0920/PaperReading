@@ -2,10 +2,13 @@ from __future__ import annotations
 
 import re
 
+from backend.app.ai.contracts import SummarySections
+from backend.app.ai.harness import SummaryHarness
 from backend.app.core.config import Settings
 from backend.app.core.http_client import HttpClient
 from backend.app.core.utils import normalize_title_display
 from backend.app.domain.entities import Paper
+from backend.app.services.tag_service import TagService
 
 
 SENTENCE_RE = re.compile(r"(?<=[.!?])\s+")
@@ -52,9 +55,10 @@ GOAL_HINTS = [
 
 
 class SummaryService:
-    def __init__(self, settings: Settings, http_client: HttpClient):
+    def __init__(self, settings: Settings, http_client: HttpClient, tag_service: TagService):
         self.settings = settings
         self.http_client = http_client
+        self.tag_service = tag_service
 
     def summarize(self, paper: Paper) -> tuple[str, str]:
         if self.settings.openai_api_key:
@@ -65,30 +69,11 @@ class SummaryService:
         return self._heuristic_summary(paper), "heuristic"
 
     def _summarize_with_llm(self, paper: Paper) -> str:
+        candidate_tags = self.tag_service.build_candidate_tags(paper)
+        harness = SummaryHarness(fallback_tags=candidate_tags)
         payload = {
             "model": self.settings.openai_model,
-            "messages": [
-                {
-                    "role": "system",
-                    "content": "You are a precise AI research assistant. Summarize papers in Chinese.",
-                },
-                {
-                    "role": "user",
-                    "content": (
-                        "请用简洁中文总结这篇 AI 论文，输出 Markdown，包含：\n"
-                        "### 研究问题\n"
-                        "### 方法概览\n"
-                        "### 主要发现\n"
-                        "### 适用场景\n"
-                        "### 一句话判断\n\n"
-                        "要求：不要直接照搬英文摘要原句；优先使用中文表述，必要时只保留少量通用技术名词。\n\n"
-                        f"标题：{normalize_title_display(paper.title)}\n"
-                        f"会议：{paper.conference.upper()} {paper.year}\n"
-                        f"作者：{', '.join(paper.authors)}\n"
-                        f"摘要：{paper.abstract}\n"
-                    ),
-                },
-            ],
+            "messages": harness.build_messages(paper, candidate_tags),
             "temperature": 0.2,
         }
         response = self.http_client.post_json(
@@ -102,7 +87,8 @@ class SummaryService:
         content = (choices[0].get("message") or {}).get("content", "").strip()
         if not content:
             raise RuntimeError("Empty summary content returned")
-        return content
+        sections = harness.parse_response(content)
+        return sections.to_markdown()
 
     def build_local_summary(self, paper: Paper) -> str:
         return self._heuristic_summary(paper)
@@ -117,13 +103,13 @@ class SummaryService:
             topic = self._infer_topic(paper)
             goal = self._infer_goal(paper)
             return f"聚焦{topic}，重点尝试{goal}，适合先看方法设计和核心实验。"
-        return "打开详情页后会自动补全摘要，并生成中文总结。"
+        return "进入详情页查看摘要、导读与相关资源。"
 
     def describe_summary_source(self, model_name: str) -> str:
         if not model_name:
             return ""
         if model_name.startswith("heuristic"):
-            return "快速摘要"
+            return "即时导读"
         return f"OpenAI · {model_name}"
 
     def should_refresh_local_summary(self, paper: Paper) -> bool:
@@ -141,31 +127,28 @@ class SummaryService:
         goal = self._infer_goal(paper)
 
         if not abstract:
-            return (
-                "### 研究问题\n"
-                f"这篇论文大致围绕{topic}展开，但当前还没有拿到摘要内容，因此无法给出更细的中文总结。\n\n"
-                "### 方法概览\n"
-                "建议先打开详情页补全摘要，或直接查看 PDF 中的方法与实验部分。\n\n"
-                "### 主要发现\n"
-                "当前数据不足，暂时无法判断作者的核心实验结果。\n\n"
-                "### 适用场景\n"
-                f"适合先加入待读列表，后续再深入阅读 {paper.conference.upper()} {paper.year} 的相关工作。\n\n"
-                "### 一句话判断\n"
-                "目前信息不足，但可以确定它属于你当前检索主题下的相关论文。"
+            sections = SummarySections(
+                problem=f"这篇论文大致围绕{topic}展开，但当前还没有拿到摘要内容，因此无法给出更细的中文总结。",
+                method="建议先打开详情页补全摘要，或直接查看 PDF 中的方法与实验部分。",
+                findings="当前数据不足，暂时无法判断作者的核心实验结果。",
+                scenarios=f"适合先加入待读列表，后续再深入阅读 {paper.conference.upper()} {paper.year} 的相关工作。",
+                verdict="目前信息不足，但可以确定它属于你当前检索主题下的相关论文。",
+                tags=self.tag_service.build_candidate_tags(paper),
             )
+            return sections.to_markdown()
 
-        return (
-            "### 研究问题\n"
-            f"这篇论文主要关注{topic}，目标大概率是{goal}。\n\n"
-            "### 方法概览\n"
-            f"从标题和摘要来看，作者提出或改造了一套面向该问题的新方法，并围绕模型结构、训练策略、路由机制或评估流程做了专门设计。论文标题可以概括为：{title_display}。\n\n"
-            "### 主要发现\n"
-            "摘要显示，该工作在实验中取得了正向结果，重点收益通常体现在性能、效率、推理成本或泛化能力中的一个或多个方面。\n\n"
-            "### 适用场景\n"
-            f"适合正在跟踪 {paper.conference.upper()} {paper.year}、并希望快速筛选{topic}方向论文的读者。\n\n"
-            "### 一句话判断\n"
-            f"这是一篇围绕{topic}展开、重点尝试{goal}的论文，值得先看摘要、方法图和实验表。"
+        sections = SummarySections(
+            problem=f"这篇论文主要关注{topic}，目标大概率是{goal}。",
+            method=(
+                "从标题和摘要来看，作者提出或改造了一套面向该问题的新方法，"
+                f"并围绕模型结构、训练策略、路由机制或评估流程做了专门设计。论文标题可以概括为：{title_display}。"
+            ),
+            findings="摘要显示，该工作在实验中取得了正向结果，重点收益通常体现在性能、效率、推理成本或泛化能力中的一个或多个方面。",
+            scenarios=f"适合正在跟踪 {paper.conference.upper()} {paper.year}、并希望快速筛选{topic}方向论文的读者。",
+            verdict=f"这是一篇围绕{topic}展开、重点尝试{goal}的论文，值得先看摘要、方法图和实验表。",
+            tags=self.tag_service.build_candidate_tags(paper),
         )
+        return sections.to_markdown()
 
     def _preview_from_summary(self, summary: str) -> str:
         paragraphs = [part.strip() for part in summary.split("\n\n") if part.strip()]

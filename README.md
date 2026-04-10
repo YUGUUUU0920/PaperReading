@@ -1,28 +1,44 @@
-# Paper Assistant
+# Paper Reading
 
-一个面向 AI 顶会论文的工程化论文助手，覆盖 `ACL`、`NeurIPS`、`ICML`、`ICLR`，支持自动抓取、SQLite 缓存、中文总结、多页面前端，以及面向云平台的部署配置。
+一个面向 AI 顶会论文的公网级论文阅读平台，覆盖 `ACL`、`NeurIPS`、`ICML`、`ICLR`，支持中文导读、中文标签、引用与资源信号、论文推荐，以及可直接部署到云端的工程结构。
 
-## 项目特性
+## 产品能力
 
-- 搜索即自动获取，不需要先手动同步
-- 支持 `ACL`、`NeurIPS`、`ICML`、`ICLR`
-- 前后端分层目录，便于继续扩展
-- 论文详情页支持摘要补全与中文总结
-- 内置数据集状态页和后台定时刷新
-- 已补齐 Docker、Render 和 GitHub Actions 配置
+- 覆盖 `ACL`、`NeurIPS`、`ICML`、`ICLR` 的官方论文源
+- 支持 `2025` 年最新会议论文接入
+- 提供中文导读、中文标签与研究方向提示
+- 展示引用量、开放获取、代码资源等辅助信号
+- 详情页支持相关论文推荐
+- 多页面前端，适合公网直接访问
+- 提供 Docker、Render、GitHub Actions 一体化部署能力
+
+## AI Native 结构
+
+项目采用面向模型协作的仓库组织方式：
+
+- `AGENTS.md`
+  仓库地图、边界说明与修改约束
+- `docs/ARCHITECTURE.md`
+  系统结构与扩展点
+- `docs/AI_HARNESS.md`
+  总结 contract、输出校验与 fallback 约束
+- `docs/DATA_SOURCES.md`
+  官方源与支持年份说明
 
 ## 目录结构
 
 ```text
 backend/
   app/
+    ai/              # Summary contract、harness 与输出校验
     core/            # 配置、HTTP 客户端、通用工具
     domain/          # 领域实体
     repositories/    # SQLite 仓库
     integrations/    # 顶会官方源接入
-    services/        # 搜索、同步、总结业务编排
+    services/        # 搜索、信号增强、标签、推荐、总结业务编排
     jobs/            # 定时刷新任务
     presentation/    # 本地 HTTP 服务与生产 WSGI 入口
+docs/
 frontend/
   index.html
   paper.html
@@ -47,9 +63,9 @@ python3 main.py
 
 页面入口：
 
-- `/`：论文检索页
-- `/paper?id=<paper_id>`：论文详情页
-- `/datasets`：数据状态页
+- `/`：论文检索
+- `/paper?id=<paper_id>`：论文导读
+- `/datasets`：论文库总览
 
 ## Docker 启动
 
@@ -71,19 +87,6 @@ docker run --rm -p 8000:8000 -v "$(pwd)/data:/app/data" paper-reading
 
 ## 部署到公网
 
-先说明一件事：
-
-- GitHub 负责托管代码
-- 真正让应用在公网可访问，通常要接 Render、Railway、Fly.io 或你自己的服务器
-
-这个仓库已经准备好了两样东西：
-
-1. `Dockerfile`
-   通用容器部署入口，适合 Docker、Railway、Fly.io、自建服务器。
-
-2. `render.yaml`
-   可以直接让 Render 从 GitHub 仓库创建 Web Service，并挂载持久化磁盘保存 `SQLite` 数据。
-
 ### 推荐做法：GitHub + Render
 
 1. 把代码推到你的 GitHub 仓库
@@ -93,31 +96,27 @@ docker run --rm -p 8000:8000 -v "$(pwd)/data:/app/data" paper-reading
 5. 在 Render 控制台补上 `OPENAI_API_KEY`
 6. 部署完成后，访问 Render 分配的公网域名
 
-线上部署时：
-
-- 平台注入 `PORT` 时，服务会自动监听 `0.0.0.0`
-- 数据库存放在 `/app/data`
-- `render.yaml` 已配置 `/api/health` 健康检查
-
-## GitHub Actions
-
 仓库已包含：
 
+- `Dockerfile`
+- `render.yaml`
 - `.github/workflows/ci.yml`
+
+## GitHub Actions
 
 每次推送或发起 PR 时会自动执行：
 
 - 安装依赖
 - 运行 `unittest`
 
-## 手动刷新缓存
+## 数据更新
 
 ```bash
 python3 scripts/sync_papers.py --conference icml --year 2024
 python3 scripts/sync_papers.py --conference iclr --year 2025
 ```
 
-这只是刷新缓存，不是使用前提。
+这个脚本适合预先整理某个会议年份的数据。
 
 ## 环境变量
 
@@ -129,24 +128,34 @@ export PAPER_ASSISTANT_DB_PATH="/absolute/path/to/papers.db"
 # 网络模式：auto / env / direct
 export PAPER_ASSISTANT_NETWORK_MODE=auto
 
-# 默认打开页面后自动查询的会议年份
+# 默认会议年份
 export PAPER_ASSISTANT_DEFAULT_CONFERENCE=icml
-export PAPER_ASSISTANT_DEFAULT_YEAR=2024
+export PAPER_ASSISTANT_DEFAULT_YEAR=2025
 
-# 数据集刷新 TTL 与后台调度
+# 数据刷新 TTL 与后台调度
 export PAPER_ASSISTANT_REFRESH_TTL_HOURS=168
 export PAPER_ASSISTANT_SCHEDULER_ENABLED=1
 export PAPER_ASSISTANT_SCHEDULER_INTERVAL_MINUTES=60
 
-# 可选：OpenAI 兼容总结接口
+# 可选：OpenAI 兼容导读模型
 export OPENAI_API_KEY="..."
 export OPENAI_BASE_URL="https://api.openai.com/v1"
-export OPENAI_MODEL="gpt-5.4-mini"
+export OPENAI_MODEL="gpt-5.4"
 ```
 
 ## 官方数据源
 
 - [ACL Anthology](https://aclanthology.org/)
+- [NeurIPS Virtual 2025](https://neurips.cc/virtual/2025/papers.html)
 - [NeurIPS Proceedings](https://proceedings.neurips.cc/)
 - [ICLR Proceedings](https://proceedings.iclr.cc/)
 - [PMLR / ICML](https://proceedings.mlr.press/)
+
+## 学术信号增强
+
+项目会结合外部学术元数据补充：
+
+- 引用量与影响力信号
+- 开放获取状态
+- 主题概念与中文标签
+- 代码与资源链接

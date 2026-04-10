@@ -10,16 +10,16 @@ import { buildSearchUrl, readSearchParams } from "./utils/url.js";
 const store = createStore({
   bootstrap: {
     conferences: [],
-    defaults: { conference: "icml", year: 2024 },
+    defaults: { conference: "icml", year: 2025 },
     summaryEnabled: false,
   },
   filters: {
     conference: "icml",
-    year: 2024,
+    year: 2025,
     query: "",
     page: 1,
   },
-  message: "准备就绪。选择会议、年份和关键词后开始搜索。",
+  message: "准备就绪。选择会议、年份和关键词后开始检索。",
   dataset: null,
   papers: [],
   total: 0,
@@ -69,14 +69,14 @@ function bindEvents() {
       const { filters } = store.getState();
       store.setState({
         loading: true,
-        message: `正在强制刷新 ${filters.conference.toUpperCase()} ${filters.year} 的本地缓存...`,
+        message: `正在更新 ${filters.conference.toUpperCase()} ${filters.year} 的论文数据...`,
       });
       render();
       try {
         const data = await apiClient.refreshDataset(filters);
         store.setState({
           dataset: data.dataset,
-          message: `缓存已刷新：${data.dataset.conference.toUpperCase()} ${data.dataset.year} 共 ${data.dataset.item_count} 篇。`,
+          message: `${data.dataset.conference.toUpperCase()} ${data.dataset.year} 已更新，共收录 ${data.dataset.item_count} 篇论文。`,
         });
       } catch (error) {
         store.setState({ message: error.message });
@@ -131,8 +131,8 @@ async function runSearch({ refresh }) {
     loading: true,
     hasSearched: true,
     message: refresh
-      ? `正在刷新并查询 ${filters.conference.toUpperCase()} ${filters.year}...`
-      : `正在查询 ${filters.conference.toUpperCase()} ${filters.year} 第 ${filters.page} 页，如果本地没有数据会自动从官方站点获取...`,
+      ? `正在更新并整理 ${filters.conference.toUpperCase()} ${filters.year} 的结果...`
+      : `正在整理 ${filters.conference.toUpperCase()} ${filters.year} 第 ${filters.page} 页的检索结果...`,
   });
   render();
   try {
@@ -151,8 +151,8 @@ async function runSearch({ refresh }) {
       pageSize: data.page_size || store.getState().pageSize,
       hasNext: Boolean(data.has_next),
       message: data.dataset
-        ? `${data.dataset.conference.toUpperCase()} ${data.dataset.year} 已就绪，当前缓存 ${data.dataset.item_count} 篇论文，共命中 ${data.total || data.count} 篇。`
-        : "查询完成。",
+        ? `${data.dataset.conference.toUpperCase()} ${data.dataset.year} 当前共收录 ${data.dataset.item_count} 篇论文，本次命中 ${data.total || data.count} 篇。`
+        : "检索完成。",
     });
   } catch (error) {
     store.setState({

@@ -1,6 +1,32 @@
 import { escapeHtml } from "../utils/dom.js";
 import { buildPaperUrl } from "../utils/url.js";
 
+function renderTagRow(tags = []) {
+  if (!tags.length) return "";
+  return `
+    <div class="tag-row">
+      ${tags
+        .slice(0, 6)
+        .map((tag) => `<span class="pill pill--tag">${escapeHtml(tag)}</span>`)
+        .join("")}
+    </div>
+  `;
+}
+
+function renderSignalRow(paper) {
+  const signals = [];
+  if (paper.citation_count) signals.push(`被引 ${paper.citation_count}`);
+  if (paper.code_url) signals.push("附代码");
+  if (paper.open_access) signals.push("开放获取");
+  if (paper.top_10_percent_cited) signals.push("高影响力");
+  if (!signals.length) return "";
+  return `
+    <div class="signal-row">
+      ${signals.map((item) => `<span class="signal">${escapeHtml(item)}</span>`).join("")}
+    </div>
+  `;
+}
+
 function renderQuickStart(state) {
   const picks = (state.bootstrap.conferences || [])
     .map((conference) => {
@@ -17,8 +43,8 @@ function renderQuickStart(state) {
   return `
     <div class="welcome-grid">
       <article class="empty-card empty-card--large">
-        <h3>先选一个会议年份再开始搜索</h3>
-        <p>为了让公网版更快打开，首页不再默认抓取整场会议。你可以直接检索关键词，或者从下面的快捷入口进入。</p>
+        <h3>从一个会议入口开始</h3>
+        <p>可以直接输入关键词，也可以先进入某个会议年份，浏览该场会议的论文、标签和导读摘要。</p>
       </article>
       ${picks
         .map(
@@ -29,7 +55,7 @@ function renderQuickStart(state) {
                 <span class="pill">${escapeHtml(item.year)}</span>
               </div>
               <h3>${escapeHtml(item.label)} ${escapeHtml(item.year)}</h3>
-              <p class="preview">点击后会进入对应会议年份，并自动开始抓取与分页展示论文。</p>
+              <p class="preview">查看这一年的热门研究方向、代表论文与中文导读。</p>
               <div class="card-actions">
                 <a class="button button-primary" href="/?conference=${escapeHtml(item.code)}&year=${escapeHtml(item.year)}">进入这个会场</a>
               </div>
@@ -53,7 +79,7 @@ export function renderPaperList(state) {
         <div class="section-head">
           <div>
             <h2>开始检索</h2>
-            <p>选择会议、年份和关键词后再发起查询，避免首页一打开就加载很长的论文列表。</p>
+            <p>选择会议、年份和关键词，快速定位值得精读的论文。</p>
           </div>
         </div>
         ${renderQuickStart(state)}
@@ -64,7 +90,7 @@ export function renderPaperList(state) {
   const items = papers.length
     ? papers
         .map((paper) => {
-          const preview = paper.summary_preview || "打开详情页后会自动补全摘要，并生成中文总结。";
+          const preview = paper.summary_preview || "查看摘要、导读与相关资源。";
           const href = buildPaperUrl(paper.id, filters);
           return `
             <article class="paper-card">
@@ -76,10 +102,13 @@ export function renderPaperList(state) {
               </div>
               <h3>${escapeHtml(paper.title_display || paper.title)}</h3>
               <p class="authors">${escapeHtml(paper.authors_text)}</p>
+              ${renderSignalRow(paper)}
+              ${renderTagRow(paper.tags || [])}
               <p class="preview summary-preview">${escapeHtml(preview)}</p>
               <div class="card-actions">
                 <a class="button button-primary" href="${href}">查看详情</a>
                 ${paper.pdf_url ? `<a class="button button-ghost" href="${escapeHtml(paper.pdf_url)}" target="_blank" rel="noreferrer">打开 PDF</a>` : ""}
+                ${paper.code_url ? `<a class="button button-ghost" href="${escapeHtml(paper.code_url)}" target="_blank" rel="noreferrer">代码</a>` : ""}
               </div>
             </article>
           `;
@@ -87,7 +116,7 @@ export function renderPaperList(state) {
         .join("")
     : `<div class="empty-card">
          <h3>当前没有论文</h3>
-         <p>这通常意味着当前会议年份还没缓存，或者这个关键词没有命中。现在搜索会自动拉取官方数据，不需要先做手动同步。</p>
+         <p>没有找到符合当前条件的结果。你可以换一个关键词，或者切换会议与年份继续探索。</p>
        </div>`;
 
   return `
@@ -95,7 +124,7 @@ export function renderPaperList(state) {
       <div class="section-head">
         <div>
           <h2>论文列表</h2>
-          <p>${loading ? "正在加载官方数据或本地缓存..." : `共找到 ${total} 篇，当前页展示 ${count} 篇`}</p>
+          <p>${loading ? "正在整理检索结果..." : `共找到 ${total} 篇，当前页展示 ${count} 篇`}</p>
         </div>
         <span class="counter">${count}</span>
       </div>

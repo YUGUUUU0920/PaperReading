@@ -30,6 +30,13 @@ class HttpClient:
         response = self._request("GET", url)
         return response.text
 
+    def get_json(self, url: str, headers: dict[str, str] | None = None) -> dict[str, Any]:
+        response = self._request("GET", url, headers=headers)
+        try:
+            return response.json()
+        except ValueError as exc:
+            raise FetchError(f"Invalid JSON response from {url}: {exc}") from exc
+
     def post_json(self, url: str, payload: dict[str, Any], headers: dict[str, str] | None = None) -> dict[str, Any]:
         merged_headers = dict(headers or {})
         merged_headers["Content-Type"] = "application/json"

@@ -5,8 +5,8 @@ from backend.app.core.config import Settings
 
 class CatalogService:
     CONFERENCES = [
-        {"code": "acl", "label": "ACL", "years": [2024]},
-        {"code": "neurips", "label": "NeurIPS", "years": [2024]},
+        {"code": "acl", "label": "ACL", "years": [2024, 2025]},
+        {"code": "neurips", "label": "NeurIPS", "years": [2024, 2025]},
         {"code": "icml", "label": "ICML", "years": [2023, 2024, 2025]},
         {"code": "iclr", "label": "ICLR", "years": [2024, 2025]},
     ]
@@ -23,4 +23,3 @@ class CatalogService:
             },
             "summaryEnabled": bool(self.settings.openai_api_key),
         }
-

@@ -89,6 +89,8 @@ class ApplicationTests(unittest.TestCase):
         self.assertEqual(len(payload["items"]), 1)
         self.assertEqual(payload["items"][0]["title"], "B Paper")
         self.assertIn("聚焦", payload["items"][0]["summary_preview"])
+        self.assertIn("tags", payload["items"][0])
+        self.assertIsInstance(payload["items"][0]["tags"], list)
 
 
 if __name__ == "__main__":

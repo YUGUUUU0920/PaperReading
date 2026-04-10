@@ -3,7 +3,7 @@ from __future__ import annotations
 import re
 
 from backend.app.core.http_client import HttpClient
-from backend.app.core.utils import clean_html_fragment, split_authors, utc_now_iso
+from backend.app.core.utils import clean_html_fragment, extract_resource_links, split_authors, utc_now_iso
 from backend.app.domain.entities import Paper
 from backend.app.integrations.sources.base import ConferenceSource
 
@@ -66,11 +66,13 @@ class ICMLSource(ConferenceSource):
         return items
 
     def hydrate_paper(self, paper: Paper) -> Paper:
-        if paper.abstract.strip():
+        if paper.abstract.strip() and paper.metadata.get("resource_links_checked"):
             return paper
         html = self.http_client.get_text(paper.paper_url)
         match = ABSTRACT_RE.search(html)
         paper.abstract = clean_html_fragment(match.group("abstract") if match else "")
+        paper.metadata = dict(paper.metadata)
+        paper.metadata["resource_links"] = extract_resource_links(match.group("abstract") if match else "", paper.paper_url)
+        paper.metadata["resource_links_checked"] = True
         paper.last_synced_at = utc_now_iso()
         return paper
-

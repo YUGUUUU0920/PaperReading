@@ -67,6 +67,7 @@ class SqliteRepository:
         if not papers:
             return
 
+        existing_metadata = self._load_existing_metadata(papers)
         rows = [
             (
                 paper.source,
@@ -82,7 +83,7 @@ class SqliteRepository:
                 paper.pdf_url,
                 paper.summary,
                 paper.summary_model,
-                json.dumps(paper.metadata, ensure_ascii=False),
+                json.dumps(self._merge_metadata(existing_metadata.get((paper.source, paper.external_id), {}), paper.metadata), ensure_ascii=False),
                 paper.last_synced_at,
                 paper.summary_updated_at,
             )
@@ -108,7 +109,10 @@ class SqliteRepository:
                         WHEN excluded.abstract <> '' THEN excluded.abstract
                         ELSE papers.abstract
                     END,
-                    paper_url = excluded.paper_url,
+                    paper_url = CASE
+                        WHEN excluded.paper_url <> '' THEN excluded.paper_url
+                        ELSE papers.paper_url
+                    END,
                     pdf_url = CASE
                         WHEN excluded.pdf_url <> '' THEN excluded.pdf_url
                         ELSE papers.pdf_url
@@ -344,3 +348,35 @@ class SqliteRepository:
             last_error=row["last_error"],
             updated_at=row["updated_at"],
         )
+
+    def _load_existing_metadata(self, papers: list[Paper]) -> dict[tuple[str, str], dict]:
+        keys_by_source: dict[str, set[str]] = {}
+        for paper in papers:
+            keys_by_source.setdefault(paper.source, set()).add(paper.external_id)
+
+        result: dict[tuple[str, str], dict] = {}
+        with self._connect() as connection:
+            for source, external_ids in keys_by_source.items():
+                if not external_ids:
+                    continue
+                placeholders = ",".join("?" for _ in external_ids)
+                rows = connection.execute(
+                    f"""
+                    SELECT source, external_id, metadata_json
+                    FROM papers
+                    WHERE source = ? AND external_id IN ({placeholders})
+                    """,
+                    [source, *external_ids],
+                ).fetchall()
+                for row in rows:
+                    try:
+                        metadata = json.loads(row["metadata_json"] or "{}")
+                    except json.JSONDecodeError:
+                        metadata = {}
+                    result[(row["source"], row["external_id"])] = metadata if isinstance(metadata, dict) else {}
+        return result
+
+    def _merge_metadata(self, existing: dict, incoming: dict) -> dict:
+        merged = dict(existing or {})
+        merged.update(incoming or {})
+        return merged

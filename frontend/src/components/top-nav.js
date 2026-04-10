@@ -1,14 +1,14 @@
 export function renderTopNav(active) {
   const items = [
     { key: "papers", href: "/", label: "论文检索" },
-    { key: "datasets", href: "/datasets", label: "数据集状态" },
+    { key: "datasets", href: "/datasets", label: "论文库" },
   ];
 
   return `
     <header class="top-nav panel">
       <div class="brand-block">
-        <p class="eyebrow">AI Research Workspace</p>
-        <strong class="brand-title">Paper Assistant</strong>
+        <p class="eyebrow">Paper Reading</p>
+        <strong class="brand-title">顶会论文助手</strong>
       </div>
       <nav class="nav-links">
         ${items
@@ -21,4 +21,3 @@ export function renderTopNav(active) {
     </header>
   `;
 }
-

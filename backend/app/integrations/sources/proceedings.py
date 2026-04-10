@@ -4,7 +4,7 @@ import re
 from urllib.parse import urljoin
 
 from backend.app.core.http_client import HttpClient
-from backend.app.core.utils import clean_html_fragment, split_authors, utc_now_iso
+from backend.app.core.utils import clean_html_fragment, extract_resource_links, split_authors, utc_now_iso
 from backend.app.domain.entities import Paper
 from backend.app.integrations.sources.base import ConferenceSource
 
@@ -62,12 +62,15 @@ class ProceedingsSource(ConferenceSource):
         return items
 
     def hydrate_paper(self, paper: Paper) -> Paper:
-        if paper.abstract.strip() and paper.pdf_url.strip():
+        if paper.abstract.strip() and paper.pdf_url.strip() and paper.metadata.get("resource_links_checked"):
             return paper
         html = self.http_client.get_text(paper.paper_url)
         abstract_match = ABSTRACT_RE.search(html)
         pdf_match = PDF_META_RE.search(html)
         paper.abstract = clean_html_fragment(abstract_match.group("abstract") if abstract_match else "")
         paper.pdf_url = pdf_match.group("pdf") if pdf_match else paper.pdf_url
+        paper.metadata = dict(paper.metadata)
+        paper.metadata["resource_links"] = extract_resource_links(html, paper.paper_url)
+        paper.metadata["resource_links_checked"] = True
         paper.last_synced_at = utc_now_iso()
         return paper

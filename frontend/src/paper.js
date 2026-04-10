@@ -8,7 +8,7 @@ import { buildSearchUrl, readSearchParams } from "./utils/url.js";
 const store = createStore({
   bootstrap: {
     conferences: [],
-    defaults: { conference: "icml", year: 2024 },
+    defaults: { conference: "icml", year: 2025 },
     summaryEnabled: false,
   },
   activePaper: null,
@@ -25,7 +25,7 @@ function render() {
       ${renderTopNav("papers")}
       <section class="status-banner panel">
         <div>
-          <h2>论文详情页</h2>
+          <h2>论文导读</h2>
           <p>${state.message}</p>
         </div>
       </section>
@@ -43,14 +43,14 @@ function bindEvents() {
     if (!paper) return;
     store.setState({
       loadingSummary: true,
-      message: "正在生成中文总结...",
+      message: "正在生成中文导读...",
     });
     render();
     try {
       const data = await apiClient.summarizePaper(paper.id);
       store.setState({
         activePaper: data.item,
-        message: "总结已更新。",
+        message: "中文导读已更新。",
       });
     } catch (error) {
       store.setState({ message: error.message });
@@ -80,7 +80,7 @@ async function bootstrap() {
     bootstrap: bootstrapData,
     backUrl: buildSearchUrl(filters),
     loadingDetail: true,
-    message: "正在加载论文详情、摘要与 PDF 链接...",
+    message: "正在整理论文详情、标签与相关资源...",
   });
   render();
 
@@ -88,7 +88,7 @@ async function bootstrap() {
     const data = await apiClient.getPaper(id);
     store.setState({
       activePaper: data.item,
-      message: "详情已加载。",
+      message: "论文详情已加载。",
     });
   } catch (error) {
     store.setState({ message: error.message });

@@ -12,11 +12,10 @@ export function renderSearchToolbar(state) {
   return `
     <section class="toolbar panel">
       <div class="toolbar-copy">
-        <p class="eyebrow">Research Console</p>
-        <h1>面向公网访问的 AI 顶会论文助手</h1>
+        <p class="eyebrow">Paper Reading</p>
+        <h1>顶会论文检索与中文导读</h1>
         <p class="toolbar-text">
-          现在改成按需搜索、分页浏览和中文预览。
-          第一次访问不会强制拉整库数据，点开论文会进入独立详情页查看完整摘要与中文总结。
+          面向 ACL、NeurIPS、ICML、ICLR 的论文浏览空间，支持中文标签、导读摘要、引用与资源信号，适合快速筛选值得细读的工作。
         </p>
       </div>
       <form id="search-form" class="search-form">
@@ -36,7 +35,7 @@ export function renderSearchToolbar(state) {
         </label>
         <div class="toolbar-actions">
           <button type="submit" class="button button-primary" ${loading ? "disabled" : ""}>搜索论文</button>
-          <button id="refresh-button" type="button" class="button button-secondary" ${loading ? "disabled" : ""}>刷新缓存</button>
+          <button id="refresh-button" type="button" class="button button-secondary" ${loading ? "disabled" : ""}>更新数据</button>
         </div>
       </form>
     </section>
