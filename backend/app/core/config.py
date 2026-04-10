@@ -71,7 +71,7 @@ def get_settings() -> Settings:
         network_mode=os.environ.get("PAPER_ASSISTANT_NETWORK_MODE", "auto").strip().lower(),
         openai_api_key=os.environ.get("OPENAI_API_KEY", "").strip(),
         openai_base_url=os.environ.get("OPENAI_BASE_URL", "https://api.openai.com/v1").rstrip("/"),
-        openai_model=os.environ.get("OPENAI_MODEL", "gpt-4.1"),
+        openai_model=os.environ.get("OPENAI_MODEL", "gpt-5.4-mini"),
         summary_language=os.environ.get("PAPER_ASSISTANT_SUMMARY_LANGUAGE", "zh-CN"),
         refresh_ttl_hours=_int_env("PAPER_ASSISTANT_REFRESH_TTL_HOURS", 24 * 7),
         scheduler_interval_minutes=_int_env("PAPER_ASSISTANT_SCHEDULER_INTERVAL_MINUTES", 60),
