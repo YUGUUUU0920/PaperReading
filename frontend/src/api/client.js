@@ -25,12 +25,14 @@ export const apiClient = {
     return request("/api/lists");
   },
 
-  searchPapers({ conference, year, query, tag, sort = "default", limit = 24, page = 1, autoSync = true }) {
+  searchPapers({ conference, year, query, tags = [], sort = "default", limit = 24, page = 1, autoSync = true }) {
     const params = new URLSearchParams();
     if (conference) params.set("conference", conference);
     if (year) params.set("year", String(year));
     if (query) params.set("query", query);
-    if (tag) params.set("tag", tag);
+    for (const tag of tags) {
+      if (tag) params.append("tag", tag);
+    }
     if (sort && sort !== "default") params.set("sort", sort);
     params.set("limit", String(limit));
     params.set("page", String(page));
@@ -60,6 +62,19 @@ export const apiClient = {
     return request("/api/lists/toggle", {
       method: "POST",
       body: JSON.stringify({ paper_id: paperId, list_type: listType, enabled }),
+    });
+  },
+
+  updateSavedPaper({ paperId, listType, groupName, note, isRead }) {
+    return request("/api/lists/update", {
+      method: "POST",
+      body: JSON.stringify({
+        paper_id: paperId,
+        list_type: listType,
+        group_name: groupName,
+        note,
+        is_read: isRead,
+      }),
     });
   },
 };

@@ -74,7 +74,8 @@
 }
 
 input,
-select {
+select,
+textarea {
   width: 100%;
   padding: 12px 14px;
   border: 1px solid var(--line);
@@ -84,9 +85,15 @@ select {
 }
 
 input:focus,
-select:focus {
+select:focus,
+textarea:focus {
   outline: 2px solid rgba(21, 111, 99, 0.22);
   border-color: rgba(21, 111, 99, 0.36);
+}
+
+textarea {
+  resize: vertical;
+  min-height: 112px;
 }
 
 .toolbar-actions,
@@ -163,7 +170,7 @@ select:focus {
 }
 
 button.pill {
-  border: 0;
+  border: 1px solid transparent;
   cursor: pointer;
 }
 
@@ -283,6 +290,33 @@ button.pill {
   align-items: center;
 }
 
+.selected-tags-panel {
+  display: grid;
+  gap: 10px;
+  border: 1px dashed rgba(21, 111, 99, 0.18);
+  border-radius: var(--radius-md);
+  padding: 14px;
+  background: rgba(255, 255, 255, 0.58);
+}
+
+.selected-tags-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.selected-tags-head span {
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.tag-empty {
+  color: var(--muted);
+  line-height: 1.6;
+}
+
 .quick-filter-label {
   font-size: 13px;
   color: var(--muted);
@@ -343,6 +377,90 @@ button.pill {
 .pill--active {
   background: rgba(21, 111, 99, 0.18);
   border-color: rgba(21, 111, 99, 0.18);
+}
+
+.group-stack {
+  display: grid;
+  gap: 18px;
+}
+
+.saved-group {
+  display: grid;
+  gap: 14px;
+}
+
+.saved-group__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.note-box {
+  padding: 12px 14px;
+  border-radius: var(--radius-md);
+  background: rgba(21, 111, 99, 0.06);
+  color: var(--text);
+  line-height: 1.7;
+  white-space: pre-wrap;
+}
+
+.saved-editor {
+  border-top: 1px solid rgba(21, 111, 99, 0.08);
+  padding-top: 12px;
+}
+
+.saved-editor summary {
+  cursor: pointer;
+  color: var(--accent-strong);
+  font-weight: 600;
+}
+
+.editor-form {
+  display: grid;
+  gap: 12px;
+  margin-top: 12px;
+}
+
+.field-grid {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: minmax(220px, 1fr) auto;
+}
+
+.field-grid label,
+.field-grid--wide {
+  display: grid;
+  gap: 8px;
+}
+
+.field-grid label span,
+.field-grid--wide span {
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.checkbox-row {
+  display: flex !important;
+  align-items: center;
+  gap: 10px;
+  min-height: 48px;
+}
+
+.checkbox-row input {
+  width: auto;
+}
+
+@media (max-width: 760px) {
+  .selected-tags-head,
+  .saved-group__head {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .field-grid {
+    grid-template-columns: 1fr;
+  }
 }
 
 .list-footer {

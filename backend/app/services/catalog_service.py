@@ -32,7 +32,7 @@ class CatalogService:
             "defaults": {
                 "conference": self.settings.default_conference,
                 "year": self.settings.default_year,
-                "tag": "",
+                "tags": [],
                 "sort": "default",
             },
             "summaryEnabled": bool(self.settings.openai_api_key),

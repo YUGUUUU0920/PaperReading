@@ -114,9 +114,9 @@ class ApplicationTests(unittest.TestCase):
                         year=2025,
                         track="Conference",
                         external_id="mm",
-                        title="A Multimodal Retrieval-Augmented Language Model",
+                        title="A Multimodal Retrieval-Augmented Language Model for Reasoning",
                         authors=["Author A"],
-                        abstract="A multimodal retrieval augmented generation system for large language models.",
+                        abstract="A multimodal retrieval augmented generation system for large language models and reasoning.",
                         paper_url="",
                         pdf_url="",
                         summary="",
@@ -144,7 +144,7 @@ class ApplicationTests(unittest.TestCase):
 
             response = app.dispatch(
                 "GET",
-                "/api/papers?conference=iclr&year=2025&tag=多模态&sort=citations_desc&auto_sync=0",
+                "/api/papers?conference=iclr&year=2025&tag=多模态&tag=大模型&sort=citations_desc&auto_sync=0",
             )
             payload = json.loads(response.body.decode("utf-8"))
 
@@ -152,6 +152,8 @@ class ApplicationTests(unittest.TestCase):
         self.assertEqual(payload["total"], 1)
         self.assertEqual(payload["items"][0]["citation_count"], 100)
         self.assertIn("多模态", payload["items"][0]["tags"])
+        self.assertIn("大模型", payload["items"][0]["tags"])
+        self.assertEqual(payload["selected_tags"], ["多模态", "大模型"])
 
     def test_saved_list_endpoints_persist_paper_state(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -193,14 +195,33 @@ class ApplicationTests(unittest.TestCase):
                 body=json.dumps({"paper_id": paper_id, "list_type": "favorite", "enabled": True}).encode("utf-8"),
             )
             toggle_payload = json.loads(toggle.body.decode("utf-8"))
+            update = app.dispatch(
+                "POST",
+                "/api/lists/update",
+                body=json.dumps(
+                    {
+                        "paper_id": paper_id,
+                        "list_type": "favorite",
+                        "group_name": "必读",
+                        "note": "先看方法部分",
+                        "is_read": True,
+                    }
+                ).encode("utf-8"),
+            )
+            update_payload = json.loads(update.body.decode("utf-8"))
             listing = app.dispatch("GET", "/api/lists")
             listing_payload = json.loads(listing.body.decode("utf-8"))
 
         self.assertEqual(toggle.status.value, 200)
         self.assertTrue(toggle_payload["item"]["saved"]["favorite"])
+        self.assertEqual(update.status.value, 200)
+        self.assertEqual(update_payload["item"]["saved"]["favorite"]["group_name"], "必读")
+        self.assertEqual(update_payload["item"]["saved"]["favorite"]["note"], "先看方法部分")
+        self.assertTrue(update_payload["item"]["saved"]["favorite"]["is_read"])
         self.assertEqual(listing.status.value, 200)
         self.assertEqual(listing_payload["counts"]["favorite"], 1)
         self.assertEqual(len(listing_payload["favorite"]), 1)
+        self.assertEqual(listing_payload["favorite"][0]["saved"]["favorite"]["group_name"], "必读")
 
 
 if __name__ == "__main__":

@@ -51,6 +51,8 @@ class Application:
                 return self._handle_refresh_dataset(body)
             if path == "/api/lists/toggle":
                 return self._handle_toggle_saved(body)
+            if path == "/api/lists/update":
+                return self._handle_update_saved(body)
             if path.startswith("/api/papers/") and path.endswith("/summarize"):
                 return self._handle_summarize(path)
             return self._json_response(
@@ -95,7 +97,7 @@ class Application:
         conference = params.get("conference", [""])[0]
         year_text = params.get("year", [""])[0]
         query = params.get("query", [""])[0]
-        tag = params.get("tag", [""])[0]
+        tags = self._parse_multi_values(params.get("tag", []))
         sort = params.get("sort", ["default"])[0]
         limit_text = params.get("limit", ["24"])[0]
         page_text = params.get("page", ["1"])[0]
@@ -109,7 +111,7 @@ class Application:
                 conference=conference,
                 year=year,
                 query=query,
-                tag=tag,
+                tags=tags,
                 sort=sort,
                 limit=limit,
                 page=page,
@@ -228,6 +230,44 @@ class Application:
             )
         return self._json_response({"ok": True, "item": item})
 
+    def _handle_update_saved(self, body: bytes) -> Response:
+        try:
+            payload = self._decode_json_body(body)
+        except ValueError as exc:
+            return self._json_response(
+                {"ok": False, "error": str(exc)},
+                status=HTTPStatus.BAD_REQUEST,
+            )
+        paper_id = int(payload.get("paper_id", 0))
+        list_type = str(payload.get("list_type", "")).strip().lower()
+        group_name = str(payload.get("group_name", "")).strip()
+        note = str(payload.get("note", "")).strip()
+        is_read = bool(payload.get("is_read", False))
+        if not paper_id or list_type not in {"favorite", "reading"}:
+            return self._json_response(
+                {"ok": False, "error": "paper_id and valid list_type are required"},
+                status=HTTPStatus.BAD_REQUEST,
+            )
+        try:
+            item = self.container.paper_service.update_saved_entry(
+                paper_id,
+                list_type,
+                group_name=group_name,
+                note=note,
+                is_read=is_read,
+            )
+        except KeyError as exc:
+            return self._json_response(
+                {"ok": False, "error": str(exc)},
+                status=HTTPStatus.NOT_FOUND,
+            )
+        except Exception as exc:
+            return self._json_response(
+                {"ok": False, "error": str(exc)},
+                status=HTTPStatus.BAD_GATEWAY,
+            )
+        return self._json_response({"ok": True, "item": item})
+
     def _extract_paper_id(self, path: str) -> int | None:
         parts = [part for part in path.split("/") if part]
         if len(parts) < 3:
@@ -247,6 +287,15 @@ class Application:
         if not isinstance(payload, dict):
             raise ValueError("JSON body must be an object")
         return payload
+
+    def _parse_multi_values(self, values: list[str]) -> list[str]:
+        items: list[str] = []
+        for value in values:
+            for part in value.split(","):
+                cleaned = part.strip()
+                if cleaned and cleaned not in items:
+                    items.append(cleaned)
+        return items
 
     def _json_response(self, payload: dict, status: HTTPStatus = HTTPStatus.OK) -> Response:
         return Response(

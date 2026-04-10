@@ -99,7 +99,7 @@ async function bootstrap() {
     conference: params.get("conference") || bootstrapData.defaults.conference,
     year: Number(params.get("year") || bootstrapData.defaults.year),
     query: params.get("query") || "",
-    tag: params.get("tag") || bootstrapData.defaults.tag || "",
+    tags: params.getAll("tag").filter(Boolean).length ? params.getAll("tag").filter(Boolean) : bootstrapData.defaults.tags || [],
     sort: params.get("sort") || bootstrapData.defaults.sort || "default",
   };
   store.setState({

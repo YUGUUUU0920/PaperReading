@@ -24,6 +24,25 @@ function renderSaveActions(activePaper) {
   `;
 }
 
+function renderSavedSummary(activePaper) {
+  const items = [];
+  if (activePaper.saved?.favorite) {
+    const groupName = activePaper.saved.favorite.group_name?.trim();
+    items.push(groupName ? `收藏分组：${groupName}` : "已加入收藏");
+  }
+  if (activePaper.saved?.reading) {
+    const groupName = activePaper.saved.reading.group_name?.trim();
+    items.push(activePaper.saved.reading.is_read ? "待读状态：已读" : "待读状态：未读");
+    if (groupName) items.push(`待读分组：${groupName}`);
+  }
+  if (!items.length) return "";
+  return `
+    <div class="signal-row">
+      ${items.map((item) => `<span class="signal">${escapeHtml(item)}</span>`).join("")}
+    </div>
+  `;
+}
+
 function renderSignals(activePaper) {
   const items = [];
   if (activePaper.citation_count) items.push(`被引 ${activePaper.citation_count}`);
@@ -132,6 +151,7 @@ export function renderPaperDetail(state) {
         ${activePaper.pdf_url ? `<a class="button button-secondary" href="${escapeHtml(activePaper.pdf_url)}" target="_blank" rel="noreferrer">打开 PDF</a>` : ""}
       </div>
       ${renderSaveActions(activePaper)}
+      ${renderSavedSummary(activePaper)}
 
       ${renderResources(activePaper)}
 

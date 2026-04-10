@@ -1,7 +1,7 @@
 import { escapeHtml } from "../utils/dom.js";
 import { buildPaperUrl } from "../utils/url.js";
 
-function renderTagRow(tags = [], { activeTag = "", clickable = false } = {}) {
+function renderTagRow(tags = [], { activeTags = [], clickable = false } = {}) {
   if (!tags.length) return "";
   return `
     <div class="tag-row">
@@ -9,7 +9,7 @@ function renderTagRow(tags = [], { activeTag = "", clickable = false } = {}) {
         .slice(0, 6)
         .map((tag) =>
           clickable
-            ? `<button class="pill pill--tag ${tag === activeTag ? "pill--active" : ""}" type="button" data-filter-tag="${escapeHtml(tag)}">${escapeHtml(tag)}</button>`
+            ? `<button class="pill pill--tag ${activeTags.includes(tag) ? "pill--active" : ""}" type="button" data-filter-tag="${escapeHtml(tag)}">${escapeHtml(tag)}</button>`
             : `<span class="pill pill--tag">${escapeHtml(tag)}</span>`,
         )
         .join("")}
@@ -89,6 +89,7 @@ export function renderPaperList(state) {
   const count = papers.length;
   const currentPage = Number(filters.page || 1);
   const totalPages = total ? Math.max(1, Math.ceil(total / pageSize)) : 0;
+  const selectedTags = Array.isArray(filters.tags) ? filters.tags : [];
 
   if (!hasSearched && !loading) {
     return `
@@ -120,7 +121,7 @@ export function renderPaperList(state) {
               <h3>${escapeHtml(paper.title_display || paper.title)}</h3>
               <p class="authors">${escapeHtml(paper.authors_text)}</p>
               ${renderSignalRow(paper)}
-              ${renderTagRow(paper.tags || [], { activeTag: filters.tag, clickable: true })}
+              ${renderTagRow(paper.tags || [], { activeTags: selectedTags, clickable: true })}
               <p class="preview summary-preview">${escapeHtml(preview)}</p>
               <div class="card-actions">
                 <a class="button button-primary" href="${href}">查看详情</a>
@@ -150,7 +151,7 @@ export function renderPaperList(state) {
                    ${resultTags
                      .map(
                        (tag) =>
-                         `<button class="pill pill--tag ${tag === filters.tag ? "pill--active" : ""}" type="button" data-filter-tag="${escapeHtml(tag)}">${escapeHtml(tag)}</button>`,
+                         `<button class="pill pill--tag ${selectedTags.includes(tag) ? "pill--active" : ""}" type="button" data-filter-tag="${escapeHtml(tag)}">${escapeHtml(tag)}</button>`,
                      )
                      .join("")}
                  </div>`

@@ -73,6 +73,7 @@ class SqliteRepository:
                 ON saved_entries(list_type, updated_at DESC);
                 """
             )
+            self._ensure_saved_entry_columns(connection)
 
     def upsert_papers(self, papers: list[Paper]) -> None:
         if not papers:
@@ -355,6 +356,50 @@ class SqliteRepository:
                     (paper_id, normalized),
                 )
 
+    def update_saved_entry(
+        self,
+        paper_id: int,
+        list_type: str,
+        *,
+        group_name: str = "",
+        note: str = "",
+        is_read: bool = False,
+    ) -> None:
+        normalized = list_type.strip().lower()
+        if normalized not in {"favorite", "reading"}:
+            raise ValueError(f"Unsupported list_type: {list_type}")
+        timestamp = utc_now_iso()
+        group_value = group_name.strip()
+        note_value = note.strip()
+        read_updated_at = timestamp if is_read else ""
+        with self._connect() as connection:
+            connection.execute(
+                """
+                INSERT INTO saved_entries (
+                    paper_id, list_type, created_at, updated_at, group_name, note, is_read, read_updated_at
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                ON CONFLICT(paper_id, list_type) DO UPDATE SET
+                    updated_at = excluded.updated_at,
+                    group_name = excluded.group_name,
+                    note = excluded.note,
+                    is_read = excluded.is_read,
+                    read_updated_at = CASE
+                        WHEN saved_entries.is_read <> excluded.is_read THEN excluded.read_updated_at
+                        ELSE saved_entries.read_updated_at
+                    END
+                """,
+                (
+                    paper_id,
+                    normalized,
+                    timestamp,
+                    timestamp,
+                    group_value,
+                    note_value,
+                    1 if is_read else 0,
+                    read_updated_at,
+                ),
+            )
+
     def get_saved_states(self, paper_ids: list[int]) -> dict[int, set[str]]:
         if not paper_ids:
             return {}
@@ -372,6 +417,24 @@ class SqliteRepository:
         for row in rows:
             states.setdefault(int(row["paper_id"]), set()).add(str(row["list_type"]))
         return states
+
+    def get_saved_entries(self, paper_ids: list[int]) -> dict[int, dict[str, dict]]:
+        if not paper_ids:
+            return {}
+        placeholders = ",".join("?" for _ in paper_ids)
+        with self._connect() as connection:
+            rows = connection.execute(
+                f"""
+                SELECT *
+                FROM saved_entries
+                WHERE paper_id IN ({placeholders})
+                """,
+                paper_ids,
+            ).fetchall()
+        payload: dict[int, dict[str, dict]] = {}
+        for row in rows:
+            payload.setdefault(int(row["paper_id"]), {})[str(row["list_type"])] = self._row_to_saved_entry(row)
+        return payload
 
     def list_saved_papers(self, list_type: str) -> list[Paper]:
         normalized = list_type.strip().lower()
@@ -480,3 +543,28 @@ class SqliteRepository:
         merged = dict(existing or {})
         merged.update(incoming or {})
         return merged
+
+    def _ensure_saved_entry_columns(self, connection: sqlite3.Connection) -> None:
+        rows = connection.execute("PRAGMA table_info(saved_entries)").fetchall()
+        columns = {str(row["name"]) for row in rows}
+        additions = {
+            "group_name": "TEXT NOT NULL DEFAULT ''",
+            "note": "TEXT NOT NULL DEFAULT ''",
+            "is_read": "INTEGER NOT NULL DEFAULT 0",
+            "read_updated_at": "TEXT NOT NULL DEFAULT ''",
+        }
+        for name, definition in additions.items():
+            if name not in columns:
+                connection.execute(f"ALTER TABLE saved_entries ADD COLUMN {name} {definition}")
+
+    def _row_to_saved_entry(self, row: sqlite3.Row) -> dict:
+        return {
+            "enabled": True,
+            "list_type": str(row["list_type"]),
+            "group_name": str(row["group_name"] or ""),
+            "note": str(row["note"] or ""),
+            "is_read": bool(row["is_read"]),
+            "created_at": str(row["created_at"] or ""),
+            "updated_at": str(row["updated_at"] or ""),
+            "read_updated_at": str(row["read_updated_at"] or ""),
+        }
