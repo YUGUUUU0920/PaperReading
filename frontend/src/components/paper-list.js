@@ -72,6 +72,7 @@ export function renderPaperList(state) {
                 <span class="pill">${escapeHtml(paper.conference.toUpperCase())}</span>
                 <span class="pill">${escapeHtml(paper.year)}</span>
                 <span class="pill">${escapeHtml(paper.track || "未分类")}</span>
+                ${paper.summary_source_label ? `<span class="pill pill--warm">${escapeHtml(paper.summary_source_label)}</span>` : ""}
               </div>
               <h3>${escapeHtml(paper.title_display || paper.title)}</h3>
               <p class="authors">${escapeHtml(paper.authors_text)}</p>

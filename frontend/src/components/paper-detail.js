@@ -9,7 +9,7 @@ export function renderPaperDetail(state) {
         <div class="empty-card empty-card--large">
           <h2>论文详情</h2>
           <p>从左侧选一篇论文后，这里会显示摘要、官方链接和中文总结。</p>
-          <p>${bootstrap.summaryEnabled ? "已配置模型总结能力。" : "当前未配置模型接口，会先使用启发式总结。"}</p>
+          <p>${bootstrap.summaryEnabled ? "已接入模型总结能力；如果接口暂时不可用，会先显示快速摘要。" : "当前还没有接入模型总结，会先显示快速摘要。"}</p>
         </div>
       </section>
     `;
@@ -44,7 +44,13 @@ export function renderPaperDetail(state) {
       </div>
 
       <div class="detail-block">
-        <h3>中文总结</h3>
+        <div class="detail-summary-head">
+          <h3>中文总结</h3>
+          <div class="paper-card__meta">
+            ${activePaper.summary_source_label ? `<span class="pill pill--warm">${escapeHtml(activePaper.summary_source_label)}</span>` : ""}
+            ${activePaper.summary_updated_at ? `<span class="pill">${escapeHtml(activePaper.summary_updated_at)}</span>` : ""}
+          </div>
+        </div>
         <div class="markdown">${markdownToHtml(activePaper.summary || "点击上方按钮即可生成中文总结。")}</div>
       </div>
     </section>

@@ -109,4 +109,5 @@ class PaperService:
     def _serialize_paper(self, paper: Paper) -> dict:
         payload = paper.to_dict()
         payload["summary_preview"] = self.summary_service.build_preview(paper)
+        payload["summary_source_label"] = self.summary_service.describe_summary_source(paper.summary_model)
         return payload

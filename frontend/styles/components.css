@@ -150,6 +150,11 @@ select:focus {
   font-weight: 700;
 }
 
+.pill--warm {
+  background: #efe0ca;
+  color: #7b4c17;
+}
+
 .counter {
   min-width: 42px;
 }
@@ -187,6 +192,13 @@ select:focus {
 .detail-topline {
   display: flex;
   justify-content: flex-start;
+}
+
+.detail-summary-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
 }
 
 .detail-head h2 {

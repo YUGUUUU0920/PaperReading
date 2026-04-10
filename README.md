@@ -141,7 +141,7 @@ export PAPER_ASSISTANT_SCHEDULER_INTERVAL_MINUTES=60
 # 可选：OpenAI 兼容总结接口
 export OPENAI_API_KEY="..."
 export OPENAI_BASE_URL="https://api.openai.com/v1"
-export OPENAI_MODEL="gpt-4.1-mini"
+export OPENAI_MODEL="gpt-4.1"
 ```
 
 ## 官方数据源

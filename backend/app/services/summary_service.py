@@ -119,6 +119,13 @@ class SummaryService:
             return f"聚焦{topic}，重点尝试{goal}，适合先看方法设计和核心实验。"
         return "打开详情页后会自动补全摘要，并生成中文总结。"
 
+    def describe_summary_source(self, model_name: str) -> str:
+        if not model_name:
+            return ""
+        if model_name.startswith("heuristic"):
+            return "快速摘要"
+        return f"OpenAI · {model_name}"
+
     def should_refresh_local_summary(self, paper: Paper) -> bool:
         if not paper.summary.strip():
             return True
