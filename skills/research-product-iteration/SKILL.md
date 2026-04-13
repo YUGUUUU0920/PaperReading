@@ -61,5 +61,6 @@ Deliver:
 - one short dated report in `reports/product-iterations/`
 - at most one bounded code change
 - optionally one visual HTML brief and SVG chart for the same date
+- prefer dropping one primary daily reading file into the desktop archive when available
 - regression results
 - a concise summary for the user

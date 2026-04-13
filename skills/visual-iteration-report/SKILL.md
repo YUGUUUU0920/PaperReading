@@ -24,8 +24,11 @@ Read these first:
    - `reports/product-iterations/YYYY-MM-DD.html`
    - `reports/product-iterations/YYYY-MM-DD-heatmap.svg`
    - optionally `reports/product-iterations/YYYY-MM-DD-heatmap.png` when `sips` is available
+   - `~/Desktop/Research Atlas 日报/YYYY-MM-DD Research Atlas 产品迭代日报.pdf` when Chrome export is available
+   - fallback: `~/Desktop/Research Atlas 日报/YYYY-MM-DD Research Atlas 产品迭代日报.html`
+   - `~/Desktop/Research Atlas 日报/index.html`
 4. If the report reads awkwardly, tighten the markdown source first and rerender.
-5. Tell the user where to open the HTML brief and note that it can be printed to PDF from the browser.
+5. Tell the user where to open the desktop daily brief and note whether the primary artifact is PDF or HTML.
 
 ## Design Rules
 
@@ -38,7 +41,9 @@ Read these first:
 
 Deliver:
 
-- one readable HTML brief
+- one readable HTML brief in the repo
+- one desktop-ready daily brief, preferably PDF
 - one SVG chart
 - optionally one PNG preview image
+- one desktop archive index page
 - the source markdown report kept in sync

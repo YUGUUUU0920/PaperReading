@@ -51,7 +51,8 @@ The report must stay short and include:
 
 Optional readable artifact:
 
-- one visual HTML brief and one SVG chart for the same date when a presentation-friendly daily report is requested
+- one visual reading brief for the same date, preferably exported as a desktop-ready PDF and backed by a self-contained HTML source
+- optional SVG or PNG chart assets kept in the repo for traceability
 
 ## Decision Rules
 
@@ -75,6 +76,8 @@ Before considering a run complete:
 - Do not expose internal workflow promises in public UI copy.
 - Reports should be concise and decision-oriented.
 - If you render a visual brief, keep it lightweight and printable.
+- Prefer a desktop-friendly archive flow so daily reading does not depend on a local server.
+- When possible, generate one primary daily file in the desktop archive so the reading flow stays simple.
 
 ## Automation Notes
 
