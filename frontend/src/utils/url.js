@@ -13,7 +13,7 @@ export function buildSearchUrl(filters = {}) {
   if (filters.sort && filters.sort !== "default") params.set("sort", filters.sort);
   if (filters.page && Number(filters.page) > 1) params.set("page", String(filters.page));
   const suffix = params.toString();
-  return suffix ? `/?${suffix}` : "/";
+  return suffix ? `/explore?${suffix}` : "/explore";
 }
 
 export function buildPaperUrl(paperId, filters = {}) {

@@ -12,6 +12,30 @@ from backend.app.presentation.application import Application
 
 
 class ApplicationTests(unittest.TestCase):
+    def test_frontend_routes_return_html_pages(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            db_path = os.path.join(temp_dir, "papers.db")
+            with patch.dict(
+                os.environ,
+                {
+                    "PAPER_ASSISTANT_DB_PATH": db_path,
+                    "PAPER_ASSISTANT_SCHEDULER_ENABLED": "0",
+                },
+                clear=False,
+            ):
+                app = Application(build_container())
+
+            home = app.dispatch("GET", "/")
+            explore = app.dispatch("GET", "/explore")
+            themes = app.dispatch("GET", "/themes")
+
+        self.assertEqual(home.status.value, 200)
+        self.assertEqual(explore.status.value, 200)
+        self.assertEqual(themes.status.value, 200)
+        self.assertIn(b"Research Atlas", home.body)
+        self.assertIn(b"frontend/src/main.js", explore.body)
+        self.assertIn(b"frontend/src/themes.js", themes.body)
+
     def test_health_endpoint_returns_ok(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             db_path = os.path.join(temp_dir, "papers.db")

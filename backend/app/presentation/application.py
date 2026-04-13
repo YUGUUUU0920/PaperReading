@@ -26,7 +26,7 @@ class Application:
         path = parsed.path
 
         if method == "GET":
-            if path in {"/", "/papers", "/paper", "/datasets", "/lists"} or path.startswith("/frontend/"):
+            if path in {"/", "/explore", "/papers", "/themes", "/paper", "/datasets", "/lists"} or path.startswith("/frontend/"):
                 return self._serve_frontend(path)
             if path == "/api/health":
                 return self._json_response({"ok": True})
@@ -68,7 +68,9 @@ class Application:
     def _serve_frontend(self, path: str) -> Response:
         route_map = {
             "/": self.container.settings.frontend_root / "index.html",
-            "/papers": self.container.settings.frontend_root / "index.html",
+            "/explore": self.container.settings.frontend_root / "explore.html",
+            "/papers": self.container.settings.frontend_root / "explore.html",
+            "/themes": self.container.settings.frontend_root / "themes.html",
             "/paper": self.container.settings.frontend_root / "paper.html",
             "/datasets": self.container.settings.frontend_root / "datasets.html",
             "/lists": self.container.settings.frontend_root / "lists.html",

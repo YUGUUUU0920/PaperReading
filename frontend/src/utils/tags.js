@@ -42,6 +42,28 @@ const SIGNAL_TONES = {
 
 export const FEATURED_THEMES = ["大模型", "多模态", "RAG", "智能体", "推理", "强化学习", "扩散模型", "图学习"];
 export const THEME_ORDER = Object.keys(THEME_META);
+export const THEME_GROUPS = [
+  {
+    title: "模型与推理",
+    description: "围绕模型能力、推理质量与任务规划的主题入口。",
+    themes: ["大模型", "推理", "智能体", "代码生成", "对齐", "自然语言处理"],
+  },
+  {
+    title: "多模态与感知",
+    description: "覆盖视觉、视频、语音与跨模态理解的核心方向。",
+    themes: ["多模态", "计算机视觉", "视频理解", "语音音频", "扩散模型"],
+  },
+  {
+    title: "决策与世界建模",
+    description: "更偏向行动、控制、环境理解与长期规划。",
+    themes: ["强化学习", "机器人", "世界模型", "时间序列", "推荐系统"],
+  },
+  {
+    title: "数据、系统与评测",
+    description: "关注检索、数据构建、评测协议与系统可靠性。",
+    themes: ["RAG", "图学习", "联邦学习", "隐私安全", "数据集", "基准评测", "评测分析", "医疗AI"],
+  },
+];
 
 export function getTagTone(tag) {
   return THEME_META[tag]?.tone || SIGNAL_TONES[tag] || "default";

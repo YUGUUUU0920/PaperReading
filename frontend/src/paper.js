@@ -22,7 +22,7 @@ function render() {
   const state = store.getState();
   document.getElementById("app").innerHTML = `
     <main class="app-shell app-shell--detail">
-      ${renderTopNav("papers")}
+      ${renderTopNav("explore")}
       <section class="status-banner panel">
         <div>
           <h2>论文导读</h2>
@@ -89,7 +89,7 @@ async function bootstrap() {
   const params = readSearchParams();
   const id = Number(params.get("id") || 0);
   if (!id) {
-    store.setState({ message: "缺少论文 id，无法打开详情页。", backUrl: "/" });
+    store.setState({ message: "缺少论文 id，无法打开详情页。", backUrl: "/explore" });
     render();
     return;
   }

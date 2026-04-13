@@ -10,6 +10,10 @@
   width: min(980px, calc(100% - 32px));
 }
 
+.app-shell--home {
+  width: min(1320px, calc(100% - 32px));
+}
+
 .panel {
   border: 1px solid var(--line);
   border-radius: var(--radius-xl);
@@ -91,6 +95,12 @@
 .empty-card {
   display: grid;
   gap: 12px;
+}
+
+.home-grid,
+.conference-grid {
+  display: grid;
+  gap: 18px;
 }
 
 @media (max-width: 1120px) {

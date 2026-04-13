@@ -88,63 +88,33 @@ function renderPaperCard(paper, filters, selectedTags) {
 }
 
 function renderLanding(state) {
-  const { bootstrap, filters } = state;
-  const picks = (bootstrap.conferences || [])
-    .map((conference) => {
-      const years = Array.isArray(conference.years) ? [...conference.years].sort((a, b) => b - a) : [];
-      return {
-        code: conference.code,
-        label: conference.label,
-        year: years[0],
-      };
-    })
-    .filter((item) => item.year)
-    .slice(0, 4);
-
+  const { filters } = state;
   return `
-    <div class="landing-stack">
-      <div class="atlas-feature-grid">
-        ${FEATURED_THEMES.map((theme) => {
-          const meta = getThemeMeta(theme);
-          const href = buildSearchUrl({ ...filters, tags: [theme], page: 1, query: "" });
-          return `
-            <a class="atlas-feature-card" href="${href}" data-tone="${meta.tone}">
-              <div class="atlas-feature-card__head">
-                <span class="pill pill--tag" data-tone="${meta.tone}">${escapeHtml(theme)}</span>
-                <span class="atlas-feature-card__arrow">探索</span>
-              </div>
-              <strong>${escapeHtml(theme)}</strong>
-              <p>${escapeHtml(meta.description)}</p>
-            </a>
-          `;
-        }).join("")}
+    <div class="landing-stack landing-stack--compact">
+      <div class="empty-card empty-card--large atlas-note">
+        <h3>先定义方向，再开始筛选</h3>
+        <p>研究探索页只负责检索和收窄结果。若你还没确定方向，先跳到主题页会更轻松。</p>
+        <div class="card-actions">
+          <a class="button button-primary" href="/themes">浏览主题</a>
+          <a class="button button-secondary" href="/lists">查看阅读清单</a>
+        </div>
       </div>
-      <div class="welcome-grid">
-        <article class="empty-card empty-card--large atlas-note">
-          <h3>从主题出发，而不是从论文堆里翻找</h3>
-          <p>先进入你真正关心的研究方向，再通过中文标签、引用信号和导读摘要，把值得深读的工作快速筛出来。</p>
-          <div class="signal-row">
-            <span class="signal">主题导览</span>
-            <span class="signal">中文标签</span>
-            <span class="signal">引用与资源信号</span>
-          </div>
-        </article>
-        ${picks
-          .map(
-            (item) => `
-              <article class="paper-card paper-card--mini">
-                <div class="paper-card__meta">
-                  <span class="pill">${escapeHtml(item.label)}</span>
-                  <span class="pill">${escapeHtml(item.year)}</span>
+      <div class="atlas-feature-grid atlas-feature-grid--compact">
+        ${FEATURED_THEMES.slice(0, 6)
+          .map((theme) => {
+            const meta = getThemeMeta(theme);
+            const href = buildSearchUrl({ ...filters, tags: [theme], page: 1, query: "" });
+            return `
+              <a class="atlas-feature-card" href="${href}" data-tone="${meta.tone}">
+                <div class="atlas-feature-card__head">
+                  <span class="pill pill--tag" data-tone="${meta.tone}">${escapeHtml(theme)}</span>
+                  <span class="atlas-feature-card__arrow">探索</span>
                 </div>
-                <h3>${escapeHtml(item.label)} ${escapeHtml(item.year)}</h3>
-                <p class="preview">进入这个时间切片，查看当年的核心主题分布与代表论文。</p>
-                <div class="card-actions">
-                  <a class="button button-primary" href="/?conference=${escapeHtml(item.code)}&year=${escapeHtml(item.year)}">进入研究流</a>
-                </div>
-              </article>
-            `,
-          )
+                <strong>${escapeHtml(theme)}</strong>
+                <p>${escapeHtml(meta.description)}</p>
+              </a>
+            `;
+          })
           .join("")}
       </div>
     </div>
@@ -185,8 +155,8 @@ export function renderPaperList(state) {
       <section class="list-panel panel">
         <div class="section-head">
           <div>
-            <h2>研究主题地图</h2>
-            <p>从主题切入，逐步收窄到具体论文、实验结论和资源线索。</p>
+            <h2>开始一次新的探索</h2>
+            <p>输入关键词，或直接从下面的主题入口跳转。</p>
           </div>
         </div>
         ${renderLanding(state)}

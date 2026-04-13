@@ -1,44 +1,25 @@
 import { escapeHtml } from "../utils/dom.js";
 import { getTagTone } from "../utils/tags.js";
 
-function renderHeroStats(bootstrap) {
+function renderWorkbenchStats(bootstrap, filters) {
   const conferenceCount = (bootstrap.conferences || []).length;
-  const years = (bootstrap.conferences || []).flatMap((item) => item.years || []);
-  const minYear = years.length ? Math.min(...years) : 2024;
-  const maxYear = years.length ? Math.max(...years) : 2025;
-  const tagCount = (bootstrap.tagOptions || []).length;
+  const latestYear = Math.max(...((bootstrap.conferences || []).flatMap((item) => item.years || []).concat([filters.year || 2025])));
+  const tagCount = Array.isArray(filters.tags) ? filters.tags.length : 0;
 
   return `
-    <div class="hero-stats">
-      <article class="hero-stat-card">
+    <div class="workbench-stats">
+      <article class="workbench-stat-card">
         <strong>${conferenceCount}</strong>
-        <span>研究来源</span>
+        <span>覆盖来源</span>
       </article>
-      <article class="hero-stat-card">
-        <strong>${minYear}-${maxYear}</strong>
-        <span>时间切片</span>
+      <article class="workbench-stat-card">
+        <strong>${latestYear}</strong>
+        <span>默认最新切片</span>
       </article>
-      <article class="hero-stat-card">
-        <strong>${tagCount}+</strong>
-        <span>中文主题标签</span>
+      <article class="workbench-stat-card">
+        <strong>${tagCount}</strong>
+        <span>已选标签</span>
       </article>
-    </div>
-  `;
-}
-
-function renderHeroMotion() {
-  return `
-    <div class="hero-motion" aria-hidden="true">
-      <div class="hero-orbit hero-orbit--outer"></div>
-      <div class="hero-orbit hero-orbit--mid"></div>
-      <div class="hero-orbit hero-orbit--inner"></div>
-      <span class="hero-node hero-node--one"></span>
-      <span class="hero-node hero-node--two"></span>
-      <span class="hero-node hero-node--three"></span>
-      <div class="hero-panel">
-        <small>Research Atlas</small>
-        <strong>Theme · Signal · Brief</strong>
-      </div>
     </div>
   `;
 }
@@ -66,21 +47,29 @@ export function renderSearchToolbar(state) {
     .join("");
 
   return `
-    <section class="toolbar panel">
-      <div class="toolbar-copy">
-        <p class="eyebrow">Research Atlas</p>
-        <h1>把论文流变成可阅读的研究图谱</h1>
-        <p class="toolbar-text">
-          用主题、信号和中文导读重新组织论文发现过程，让你先看清方向，再决定哪些工作值得深入阅读。
-        </p>
-        <div class="hero-pill-row">
-          <span class="signal">主题导览</span>
-          <span class="signal">中文标签</span>
-          <span class="signal">导读摘要</span>
-          <span class="signal">资源线索</span>
+    <section class="toolbar panel toolbar--compact toolbar--workbench">
+      <div class="toolbar-copy toolbar-copy--compact">
+        <div class="toolbar-copy__row">
+          <div>
+            <p class="eyebrow">Research Explorer</p>
+            <h1>研究探索</h1>
+            <p class="toolbar-text">
+              在这里按会议、年份、关键词与标签缩小范围；如果你还没确定方向，先去主题页会更轻松。
+            </p>
+          </div>
+          <div class="toolbar-jump-row">
+            <a class="button button-chip" href="/themes">先看主题</a>
+            <a class="button button-chip" href="/lists">阅读清单</a>
+            <a class="button button-chip" href="/datasets">论文库状态</a>
+          </div>
         </div>
-        ${renderHeroStats(bootstrap)}
-        ${renderHeroMotion()}
+        <div class="hero-pill-row">
+          <span class="signal">关键词检索</span>
+          <span class="signal">中文标签</span>
+          <span class="signal">引用排序</span>
+          <span class="signal">独立导读页</span>
+        </div>
+        ${renderWorkbenchStats(bootstrap, filters)}
       </div>
       <form id="search-form" class="search-form">
         <label>
@@ -124,7 +113,7 @@ export function renderSearchToolbar(state) {
                      )
                      .join("")}
                  </div>`
-              : `<p class="tag-empty">先定义你关心的研究主题，系统会把结果压缩成更清晰的主题视图。</p>`
+              : `<p class="tag-empty">可以直接输入关键词，也可以先加一两个主题标签，让结果更聚焦。</p>`
           }
         </div>
         <div class="toolbar-actions">

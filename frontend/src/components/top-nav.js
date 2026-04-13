@@ -1,16 +1,17 @@
 export function renderTopNav(active) {
   const items = [
-    { key: "papers", href: "/", label: "论文检索" },
-    { key: "datasets", href: "/datasets", label: "论文库" },
-    { key: "lists", href: "/lists", label: "收藏与待读" },
+    { key: "home", href: "/", label: "首页" },
+    { key: "explore", href: "/explore", label: "研究探索" },
+    { key: "themes", href: "/themes", label: "主题浏览" },
+    { key: "lists", href: "/lists", label: "阅读清单" },
   ];
 
   return `
     <header class="top-nav panel">
-      <div class="brand-block">
+      <a class="brand-block brand-block--link" href="/">
         <p class="eyebrow">Research Atlas</p>
         <strong class="brand-title">论文研究图谱</strong>
-      </div>
+      </a>
       <nav class="nav-links">
         ${items
           .map((item) => {

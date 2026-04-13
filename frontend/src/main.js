@@ -37,7 +37,7 @@ function render() {
   const app = document.getElementById("app");
   app.innerHTML = `
     <main class="app-shell">
-      ${renderTopNav("papers")}
+      ${renderTopNav("explore")}
       ${renderSearchToolbar(state)}
       ${renderStatusBanner(state)}
       <section class="workspace workspace--single">
@@ -226,7 +226,7 @@ async function runSearch({ refresh }) {
     hasSearched: true,
     message: refresh
       ? `正在更新并整理 ${filters.conference.toUpperCase()} ${filters.year} 的结果...`
-      : `正在整理 ${filters.conference.toUpperCase()} ${filters.year} 第 ${filters.page} 页的主题结果...`,
+      : `正在整理 ${filters.conference.toUpperCase()} ${filters.year} 第 ${filters.page} 页的研究结果...`,
   });
   render();
   try {
