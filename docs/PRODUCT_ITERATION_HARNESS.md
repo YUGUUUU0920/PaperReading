@@ -49,6 +49,10 @@ The report must stay short and include:
 5. `Next candidate`
    the next best small improvement.
 
+Optional readable artifact:
+
+- one visual HTML brief and one SVG chart for the same date when a presentation-friendly daily report is requested
+
 ## Decision Rules
 
 - Prefer one bounded product improvement per run.
@@ -70,6 +74,7 @@ Before considering a run complete:
 - User-facing wording must stay product-first.
 - Do not expose internal workflow promises in public UI copy.
 - Reports should be concise and decision-oriented.
+- If you render a visual brief, keep it lightweight and printable.
 
 ## Automation Notes
 

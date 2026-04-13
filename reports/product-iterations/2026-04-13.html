@@ -1,0 +1,183 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Research Atlas 产品迭代日报 - 2026-04-13</title>
+  <style>
+    :root {
+      --bg: #f5efe8;
+      --panel: #fffdfa;
+      --line: rgba(39, 31, 24, 0.12);
+      --text: #1f1a14;
+      --muted: #6d5e51;
+      --accent: #156f63;
+      --accent-soft: rgba(21, 111, 99, 0.1);
+      --shadow: 0 24px 70px rgba(57, 38, 18, 0.08);
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background:
+        radial-gradient(circle at top left, rgba(255,210,145,0.35), transparent 32%),
+        radial-gradient(circle at top right, rgba(49,130,110,0.18), transparent 28%),
+        linear-gradient(180deg, #f7f2ea 0%, #efe8df 100%);
+      color: var(--text);
+      font-family: "Avenir Next", "Segoe UI", sans-serif;
+    }
+    main {
+      width: min(1180px, calc(100% - 32px));
+      margin: 0 auto;
+      padding: 32px 0 56px;
+      display: grid;
+      gap: 18px;
+    }
+    .panel {
+      background: rgba(255,253,250,0.94);
+      border: 1px solid var(--line);
+      border-radius: 28px;
+      box-shadow: var(--shadow);
+      padding: 24px;
+    }
+    .hero {
+      display: grid;
+      grid-template-columns: 1.15fr 0.85fr;
+      gap: 18px;
+    }
+    h1, h2, h3 {
+      margin: 0;
+      font-family: "Iowan Old Style", "Palatino Linotype", serif;
+    }
+    h1 { font-size: clamp(36px, 5vw, 58px); line-height: 1.02; max-width: 11ch; }
+    h2 { font-size: 24px; margin-bottom: 10px; }
+    p, li { line-height: 1.75; color: var(--muted); }
+    ul { margin: 0; padding-left: 18px; display: grid; gap: 8px; }
+    .eyebrow {
+      text-transform: uppercase;
+      letter-spacing: .14em;
+      font-size: 12px;
+      color: var(--accent);
+      font-weight: 700;
+      margin-bottom: 10px;
+    }
+    .hero-kpis, .grid-two, .grid-three {
+      display: grid;
+      gap: 14px;
+    }
+    .hero-kpis {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      margin-top: 20px;
+    }
+    .kpi {
+      border-radius: 20px;
+      padding: 16px;
+      background: linear-gradient(180deg, rgba(255,255,255,0.84), rgba(247,242,236,0.96));
+      border: 1px solid rgba(21,111,99,0.08);
+    }
+    .kpi strong { display: block; font-size: 28px; margin-bottom: 4px; }
+    .kpi span { color: var(--muted); font-size: 13px; }
+    .grid-two {
+      grid-template-columns: 1.05fr 0.95fr;
+    }
+    .grid-three {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+    .chip-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 14px;
+    }
+    .chip {
+      display: inline-flex;
+      min-height: 32px;
+      padding: 0 12px;
+      align-items: center;
+      justify-content: center;
+      border-radius: 999px;
+      background: var(--accent-soft);
+      color: var(--accent);
+      font-weight: 700;
+      font-size: 13px;
+    }
+    .source-list a { color: var(--accent); text-decoration: none; }
+    .chart img { width: 100%; height: auto; display: block; }
+    .print-note {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      color: var(--muted);
+      font-size: 13px;
+      margin-top: 18px;
+    }
+    @media (max-width: 900px) {
+      .hero, .grid-two, .grid-three { grid-template-columns: 1fr; }
+      .hero-kpis { grid-template-columns: 1fr 1fr; }
+    }
+    @media print {
+      body { background: #fff; }
+      main { width: 100%; padding: 0; }
+      .panel { box-shadow: none; break-inside: avoid; }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <section class="panel hero">
+      <div>
+        <p class="eyebrow">Daily Product Brief</p>
+        <h1>Research Atlas 产品迭代日报 - 2026-04-13</h1>
+        <p>今天的核心判断：市面上成熟产品几乎都在把“一次性检索”升级成“持续研究流”，重点不是多给结果，而是更快找到下一篇该看的论文。</p>
+        <div class="chip-row">
+          <span class="chip">竞品扫描</span>
+          <span class="chip">结构化日报</span>
+          <span class="chip">小步迭代</span>
+        </div>
+        <div class="hero-kpis">
+          <article class="kpi"><strong>5</strong><span>观察产品</span></article>
+          <article class="kpi"><strong>3</strong><span>可借鉴方向</span></article>
+          <article class="kpi"><strong>3</strong><span>今日动作</span></article>
+        </div>
+      </div>
+      <div class="panel chart">
+        <h2>竞品能力热力图</h2>
+        <img src="2026-04-13-heatmap.svg" alt="竞品能力热力图">
+        <p class="print-note">这份 HTML 可直接在浏览器里另存为 PDF。</p>
+      </div>
+    </section>
+
+    <section class="grid-two">
+      <article class="panel">
+        <h2>竞品信号</h2>
+        <ul><li><strong>Litmaps</strong> 把文献发现做成 citation network 驱动的动态地图，强调“快速找到关键论文”和“自动跟踪最新研究”。</li><li><strong>ResearchRabbit</strong> 更强调 collections、可视化探索和智能提醒，适合持续跟踪一个主题而不是一次性搜索。</li><li><strong>Semantic Scholar</strong> 的优势是高质量 metadata、引用网络和研究 feed，用户能快速判断一篇论文是否值得点开。</li><li><strong>Elicit</strong> 更像结构化研究工作台，擅长把文献整理成对比表和问题导向的研究摘要。</li><li><strong>SciSpace</strong> 的优势在于把“读论文”本身做成可交互过程，比如问答、术语解释和针对 PDF 的辅助理解。</li></ul>
+      </article>
+      <article class="panel">
+        <h2>我们该吸收什么</h2>
+        <ul><li>把检索结果进一步产品化成“主题视图 + 信号视图 + 后续关注”而不只是结果列表。</li><li>为主题或标签增加持续跟踪机制，把一次性搜索升级成持续研究流。</li><li>在详情页加入更强的阅读辅助，比如术语释义、为什么看这篇、与相邻论文的对比入口。</li></ul>
+      </article>
+    </section>
+
+    <section class="grid-two">
+      <article class="panel">
+        <h2>今天已经做了什么</h2>
+        <ul><li>首页和检索页升级为 <strong>Research Atlas</strong> 风格的主题化界面，加入主题分组、彩色中文标签和轻量动效。</li><li>总结 schema 升级为更读者导向的结构：问题、核心思路、方法、实验、结果、价值和一句话判断。</li><li>新增产品迭代 harness 文档与报告模板，为后续每日自动迭代提供固定合同。</li></ul>
+      </article>
+      <article class="panel">
+        <h2>下一步最值得做</h2>
+        <ul><li>为主题标签增加“持续跟踪/订阅”能力，并把每日新论文变化压缩成一屏简报。</li></ul>
+      </article>
+    </section>
+
+    <section class="grid-two">
+      <article class="panel">
+        <h2>回归结果</h2>
+        <ul><li><strong>python3 -m unittest discover -s tests -p &#x27;test_*.py&#x27;</strong> passed</li><li><strong>python3 -m compileall backend frontend tests</strong> passed</li><li>local smoke check on <strong>http://127.0.0.1:8766/</strong> passed</li></ul>
+      </article>
+      <article class="panel source-list">
+        <h2>官方来源</h2>
+        <ul><li><a href="https://www.litmaps.com/about/for-researchers" target="_blank" rel="noreferrer">Litmaps</a></li><li><a href="https://www.researchrabbit.ai/articles/guide-to-using-researchrabbit" target="_blank" rel="noreferrer">ResearchRabbit</a></li><li><a href="https://www.semanticscholar.org/faq/research-dashboard" target="_blank" rel="noreferrer">Semantic Scholar Dashboard</a></li><li><a href="https://www.semanticscholar.org/faq" target="_blank" rel="noreferrer">Semantic Scholar Research Feeds</a></li><li><a href="https://elicit.com/blog/introducing-elicit-reports" target="_blank" rel="noreferrer">Elicit Reports</a></li><li><a href="https://scispace.com/resources/ultimate-guide-literature-review/" target="_blank" rel="noreferrer">SciSpace Literature Review Guide</a></li></ul>
+      </article>
+    </section>
+  </main>
+</body>
+</html>

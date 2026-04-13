@@ -1,0 +1,8 @@
+interface:
+  display_name: "Visual Iteration Report"
+  short_description: "把产品迭代日报渲染成可读的 HTML 简报和图表"
+  brand_color: "#B46A2A"
+  default_prompt: "Use $visual-iteration-report to turn a dated product iteration markdown report into a polished HTML daily brief with an SVG chart."
+
+policy:
+  allow_implicit_invocation: true

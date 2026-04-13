@@ -43,6 +43,8 @@ For competitor pages and what to inspect on each, see [references/official-compe
    If frontend structure changed, do one lightweight local smoke check when practical.
 6. Report back briefly
    Tell the user what competitors signaled, what changed, and what should be next.
+7. If a more readable artifact is requested
+   Hand off to `$visual-iteration-report` after the dated markdown report is complete.
 
 ## Decision Rules
 
@@ -58,5 +60,6 @@ Deliver:
 
 - one short dated report in `reports/product-iterations/`
 - at most one bounded code change
+- optionally one visual HTML brief and SVG chart for the same date
 - regression results
 - a concise summary for the user
