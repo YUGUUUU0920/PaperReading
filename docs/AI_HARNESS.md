@@ -12,9 +12,11 @@
 The summary pipeline expects these fields:
 
 - `problem`
+- `core_idea`
 - `method`
-- `findings`
-- `scenarios`
+- `experiments`
+- `results`
+- `value`
 - `verdict`
 - `tags`
 
@@ -33,3 +35,4 @@ These fields are defined in `backend/app/ai/contracts.py` and parsed in `backend
 - Put new prompt instructions in `backend/app/ai/harness.py`, not in route handlers.
 - If you add fields, update both the contract and the parser.
 - Prefer concise Chinese tags that can be reused across list, detail, and recommendation modules.
+- Keep the reader model stable: explain the pain point, the core idea, the experiment setting, and why the result matters in plain Chinese.

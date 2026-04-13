@@ -14,11 +14,13 @@ Paper Reading is a public-facing AI research assistant for discovering, reading,
    Summary contract, structured output rules, and fallback strategy.
 4. `docs/DATA_SOURCES.md`
    Official conference sources and supported years.
-5. `backend/app/ai/`
+5. `docs/PRODUCT_ITERATION_HARNESS.md`
+   Daily competitor scan, product iteration contract, and regression gates.
+6. `backend/app/ai/`
    AI harness contracts, prompt builders, and output validators.
-6. `backend/app/services/`
+7. `backend/app/services/`
    Product logic for search, enrichment, summaries, tags, and recommendations.
-7. `frontend/src/`
+8. `frontend/src/`
    User-facing copy and interaction layer.
 
 ## Directory Map
@@ -33,6 +35,8 @@ Paper Reading is a public-facing AI research assistant for discovering, reading,
   Chinese tag taxonomy and deterministic tag generation.
 - `backend/app/services/enrichment_service.py`
   External metadata enrichment such as citations and topic signals.
+- `reports/product-iterations/`
+  Daily research notes. Keep them brief, concrete, and tied to one bounded product improvement.
 - `frontend/src/components/`
   Product copy should be user-facing only. Do not expose internal workflow promises, hidden constraints, or engineering shortcuts.
 
@@ -50,6 +54,7 @@ Paper Reading is a public-facing AI research assistant for discovering, reading,
 - Validate required sections before storing summaries.
 - Keep a deterministic fallback so the product remains usable without model output.
 - Preserve a small, explicit tag vocabulary so downstream UI remains stable.
+- Use the product iteration harness for recurring competitor scans instead of ad-hoc brainstorming.
 
 ## Safe Changes
 
