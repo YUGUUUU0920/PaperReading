@@ -92,10 +92,10 @@ function renderLanding(state) {
   return `
     <div class="landing-stack landing-stack--compact">
       <div class="empty-card empty-card--large atlas-note">
-        <h3>先定义方向，再开始筛选</h3>
-        <p>研究探索页只负责检索和收窄结果。若你还没确定方向，先跳到主题页会更轻松。</p>
+        <h3>还没想好搜什么？</h3>
+        <p>可以先从热门主题开始，再回到这里做更细的筛选。</p>
         <div class="card-actions">
-          <a class="button button-primary" href="/themes">浏览主题</a>
+          <a class="button button-primary" href="/themes">查看热门主题</a>
           <a class="button button-secondary" href="/lists">查看阅读清单</a>
         </div>
       </div>

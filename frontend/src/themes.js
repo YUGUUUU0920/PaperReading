@@ -9,7 +9,7 @@ const state = {
     conferences: [],
     defaults: { conference: "icml", year: 2025 },
   },
-  message: "先选主题，再进入更具体的论文流。",
+  message: "从你关心的研究方向开始，快速找到相关论文。",
 };
 
 function renderThemeCard(theme, defaults) {
@@ -26,7 +26,7 @@ function renderThemeCard(theme, defaults) {
     <a class="atlas-feature-card" href="${href}" data-tone="${meta.tone}">
       <div class="atlas-feature-card__head">
         <span class="pill pill--tag" data-tone="${meta.tone}">${escapeHtml(theme)}</span>
-        <span class="atlas-feature-card__arrow">进入专题</span>
+        <span class="atlas-feature-card__arrow">查看论文</span>
       </div>
       <strong>${escapeHtml(theme)}</strong>
       <p>${escapeHtml(meta.description)}</p>
@@ -70,12 +70,12 @@ function renderConferenceTracks() {
   return `
     <section class="panel home-section">
       <div class="section-head">
-        <div>
-          <p class="eyebrow">Shortcuts</p>
-          <h2>按会议切入</h2>
-          <p>如果你已经知道想看的会议，就从这里直接跳到专题探索页。</p>
+          <div>
+            <p class="eyebrow">Shortcuts</p>
+            <h2>按会议切入</h2>
+            <p>如果你已经知道要看的会议，可以直接从这里开始。</p>
+          </div>
         </div>
-      </div>
       <div class="conference-grid">
         ${picks
           .map((item) => {
@@ -89,15 +89,15 @@ function renderConferenceTracks() {
             });
             return `
               <a class="conference-card" href="${href}">
-                <div class="paper-card__meta">
-                  <span class="pill">${escapeHtml(item.label)}</span>
-                  <span class="pill">${escapeHtml(item.year)}</span>
-                </div>
-                <strong>${escapeHtml(item.label)} ${escapeHtml(item.year)}</strong>
-                <p>进入这一会议切片，再按主题、关键词和信号继续筛选。</p>
-              </a>
-            `;
-          })
+                  <div class="paper-card__meta">
+                    <span class="pill">${escapeHtml(item.label)}</span>
+                    <span class="pill">${escapeHtml(item.year)}</span>
+                  </div>
+                  <strong>${escapeHtml(item.label)} ${escapeHtml(item.year)}</strong>
+                  <p>查看这一会议在该年份的论文，再继续筛选关键词和标签。</p>
+                </a>
+              `;
+            })
           .join("")}
       </div>
     </section>
@@ -112,7 +112,7 @@ function render() {
       <section class="toolbar panel toolbar--compact toolbar--browse">
         <div class="toolbar-copy toolbar-copy--compact">
           <p class="eyebrow">Theme Browser</p>
-          <h1>先决定方向，再进入论文</h1>
+          <h1>按热门主题开始浏览</h1>
           <p class="toolbar-text">${escapeHtml(state.message)}</p>
           <div class="hero-pill-row">
             ${FEATURED_THEMES.slice(0, 6)
@@ -142,7 +142,7 @@ apiClient
   .getBootstrap()
   .then((bootstrap) => {
     state.bootstrap = bootstrap;
-    state.message = "每个主题都会把你带到更具体的专题探索页，而不是把所有信息堆在首页。";
+    state.message = "每个主题都会直接带你看到对应方向的论文、标签和中文导读。";
     render();
   })
   .catch((error) => {

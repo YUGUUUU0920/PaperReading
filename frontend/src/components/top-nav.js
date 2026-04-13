@@ -1,8 +1,8 @@
 export function renderTopNav(active) {
   const items = [
     { key: "home", href: "/", label: "首页" },
-    { key: "explore", href: "/explore", label: "研究探索" },
-    { key: "themes", href: "/themes", label: "主题浏览" },
+    { key: "explore", href: "/explore", label: "论文发现" },
+    { key: "themes", href: "/themes", label: "热门主题" },
     { key: "lists", href: "/lists", label: "阅读清单" },
   ];
 

@@ -6,7 +6,7 @@ import { buildSearchUrl } from "./utils/url.js";
 
 const state = {
   loading: true,
-  message: "正在准备今日的研究入口...",
+  message: "正在准备今日值得关注的论文方向...",
   bootstrap: {
     conferences: [],
     defaults: { conference: "icml", year: 2025 },
@@ -57,10 +57,10 @@ function renderThemeCards(bootstrap) {
       <div class="section-head">
         <div>
           <p class="eyebrow">Featured Themes</p>
-          <h2>常用研究入口</h2>
-          <p>先选方向，再进入专题探索页继续收窄范围。</p>
+          <h2>热门研究方向</h2>
+          <p>从你关心的方向开始，快速看到相关论文与中文导读。</p>
         </div>
-        <a class="button button-ghost" href="/themes">浏览全部主题</a>
+        <a class="button button-ghost" href="/themes">查看全部主题</a>
       </div>
       <div class="atlas-feature-grid">
         ${FEATURED_THEMES.slice(0, 6)
@@ -78,7 +78,7 @@ function renderThemeCards(bootstrap) {
               <a class="atlas-feature-card" href="${href}" data-tone="${meta.tone}">
                 <div class="atlas-feature-card__head">
                   <span class="pill pill--tag" data-tone="${meta.tone}">${escapeHtml(theme)}</span>
-                  <span class="atlas-feature-card__arrow">进入专题</span>
+                  <span class="atlas-feature-card__arrow">查看论文</span>
                 </div>
                 <strong>${escapeHtml(theme)}</strong>
                 <p>${escapeHtml(meta.description)}</p>
@@ -110,13 +110,13 @@ function renderHome() {
       <section class="home-hero panel">
         <div class="home-hero__copy">
           <p class="eyebrow">Research Atlas</p>
-          <h1>把研究入口收拢成几条清晰路径</h1>
+          <h1>更快找到今天值得读的论文</h1>
           <p class="toolbar-text">
-            先按主题判断方向，再进入专题探索页筛论文，最后把值得深读的工作沉淀进阅读清单。首页只保留真正高频的入口。
+            用主题、导读和研究信号重新组织论文发现过程，帮助你更快判断哪些工作值得细读、比较和收藏。
           </p>
           <div class="card-actions">
-            <a class="button button-primary" href="${exploreUrl}">进入研究探索</a>
-            <a class="button button-secondary" href="/themes">浏览主题路径</a>
+            <a class="button button-primary" href="${exploreUrl}">开始发现论文</a>
+            <a class="button button-secondary" href="/themes">查看热门主题</a>
             <a class="button button-ghost" href="/lists">打开阅读清单</a>
           </div>
         </div>
@@ -136,24 +136,24 @@ function renderHome() {
 
       <section class="home-grid home-grid--routes">
         <a class="route-card panel" href="/themes">
-          <p class="eyebrow">Path 01</p>
-          <h2>主题浏览</h2>
-          <p>适合先锁定研究方向，再进入具体论文。</p>
+          <p class="eyebrow">Themes</p>
+          <h2>热门主题</h2>
+          <p>从高频研究方向开始，快速进入相关论文集合。</p>
         </a>
         <a class="route-card panel" href="${exploreUrl}">
-          <p class="eyebrow">Path 02</p>
-          <h2>研究探索</h2>
-          <p>按会议、年份、关键词与标签快速筛选。</p>
+          <p class="eyebrow">Search</p>
+          <h2>论文发现</h2>
+          <p>按会议、年份、关键词与标签做更细的筛选。</p>
         </a>
         <a class="route-card panel" href="/lists">
-          <p class="eyebrow">Path 03</p>
+          <p class="eyebrow">Reading List</p>
           <h2>阅读清单</h2>
-          <p>收藏、待读、分组和备注都在这里沉淀。</p>
+          <p>把收藏、待读、分组和备注都沉淀下来。</p>
         </a>
         <a class="route-card panel" href="/datasets">
-          <p class="eyebrow">Path 04</p>
-          <h2>论文库状态</h2>
-          <p>查看覆盖范围、年份切片与数据状态。</p>
+          <p class="eyebrow">Library</p>
+          <h2>论文库</h2>
+          <p>查看覆盖范围、年份分布与数据更新情况。</p>
         </a>
       </section>
 
@@ -165,8 +165,8 @@ function renderHome() {
         <div class="section-head">
           <div>
             <p class="eyebrow">Conference Slices</p>
-            <h2>从时间切片进入</h2>
-            <p>如果你已经知道会议和年份，可以直接进入对应的研究流。</p>
+            <h2>按会议与年份浏览</h2>
+            <p>如果你已经知道想看的会议和年份，可以直接从这里开始。</p>
           </div>
         </div>
         <div class="conference-grid">
@@ -187,7 +187,7 @@ function renderHome() {
                     <span class="pill">${escapeHtml(item.year)}</span>
                   </div>
                   <strong>${escapeHtml(item.label)} ${escapeHtml(item.year)}</strong>
-                  <p>直接进入这一时间切片，查看主题分布与代表论文。</p>
+                  <p>查看这一场会议在该年份的论文、主题和代表工作。</p>
                 </a>
               `;
             })
@@ -202,7 +202,7 @@ apiClient
   .getBootstrap()
   .then((bootstrap) => {
     state.bootstrap = bootstrap;
-    state.message = "按主题、按时间切片、按阅读任务进入，都已经准备好了。";
+    state.message = "从主题、会议或阅读清单开始，都能很快进入今天最值得看的论文。";
     state.loading = false;
     renderHome();
   })

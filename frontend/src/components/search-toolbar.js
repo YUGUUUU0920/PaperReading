@@ -52,15 +52,15 @@ export function renderSearchToolbar(state) {
         <div class="toolbar-copy__row">
           <div>
             <p class="eyebrow">Research Explorer</p>
-            <h1>研究探索</h1>
+            <h1>论文发现</h1>
             <p class="toolbar-text">
-              在这里按会议、年份、关键词与标签缩小范围；如果你还没确定方向，先去主题页会更轻松。
+              按会议、年份、关键词与标签筛选论文。如果你还没想好从哪里开始，可以先看看热门主题。
             </p>
           </div>
           <div class="toolbar-jump-row">
-            <a class="button button-chip" href="/themes">先看主题</a>
+            <a class="button button-chip" href="/themes">热门主题</a>
             <a class="button button-chip" href="/lists">阅读清单</a>
-            <a class="button button-chip" href="/datasets">论文库状态</a>
+            <a class="button button-chip" href="/datasets">论文库</a>
           </div>
         </div>
         <div class="hero-pill-row">
