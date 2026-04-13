@@ -22,19 +22,25 @@ class SummaryHarness:
             {
                 "role": "system",
                 "content": (
-                    "你是严谨的 AI 论文助理。"
+                    "你是资深 AI 论文导读编辑。"
+                    "你要把论文内容解释给懂技术但不一定熟悉该细分方向的读者。"
                     "你必须输出严格 JSON，不要输出 Markdown，不要输出解释。"
                 ),
             },
             {
                 "role": "user",
                 "content": (
-                    "请用简洁中文总结这篇 AI 论文，并输出 JSON 对象，字段必须是：\n"
-                    'problem, method, findings, scenarios, verdict, tags\n\n'
+                    "请写一份通俗但专业的中文论文导读，并输出 JSON 对象。\n"
+                    "字段必须严格是：\n"
+                    'problem, core_idea, method, experiments, results, value, verdict, tags\n\n'
                     "要求：\n"
-                    "1. 不要照搬英文摘要原句。\n"
-                    "2. tags 必须是中文短标签数组，尽量从候选标签中选。\n"
-                    "3. 每个字段都必须是非空字符串；tags 最多 8 个。\n\n"
+                    "1. 先说论文真正想解决的痛点，再说方法。\n"
+                    "2. 术语第一次出现时，要顺手用白话解释，不要只堆英文缩写。\n"
+                    "3. 不要照搬英文摘要原句，也不要把标题改写一遍就结束。\n"
+                    "4. 如果摘要没有明确写出数据集、任务、指标或结果，请直接写“摘要未明确说明”，不要编造。\n"
+                    "5. 每个字段用 1 到 2 句话说清楚，口吻专业、克制、易懂。\n"
+                    "6. verdict 要像给同事的阅读建议，直接说明这篇论文值不值得优先看。\n"
+                    "7. tags 必须是中文短标签数组，尽量从候选标签中选，最多 8 个。\n\n"
                     f"标题：{normalize_title_display(paper.title)}\n"
                     f"会议：{paper.conference.upper()} {paper.year}\n"
                     f"作者：{', '.join(paper.authors)}\n"
@@ -44,13 +50,51 @@ class SummaryHarness:
             },
         ]
 
+    def response_format(self) -> dict:
+        return {
+            "type": "json_schema",
+            "json_schema": {
+                "name": "paper_summary",
+                "strict": True,
+                "schema": {
+                    "type": "object",
+                    "properties": {
+                        "problem": {"type": "string"},
+                        "core_idea": {"type": "string"},
+                        "method": {"type": "string"},
+                        "experiments": {"type": "string"},
+                        "results": {"type": "string"},
+                        "value": {"type": "string"},
+                        "verdict": {"type": "string"},
+                        "tags": {
+                            "type": "array",
+                            "items": {"type": "string"},
+                        },
+                    },
+                    "required": [
+                        "problem",
+                        "core_idea",
+                        "method",
+                        "experiments",
+                        "results",
+                        "value",
+                        "verdict",
+                        "tags",
+                    ],
+                    "additionalProperties": False,
+                },
+            },
+        }
+
     def parse_response(self, content: str) -> SummarySections:
         payload = self._load_json(content)
         sections = SummarySections(
             problem=self._clean_text(payload.get("problem")),
+            core_idea=self._clean_text(payload.get("core_idea")),
             method=self._clean_text(payload.get("method")),
-            findings=self._clean_text(payload.get("findings")),
-            scenarios=self._clean_text(payload.get("scenarios")),
+            experiments=self._clean_text(payload.get("experiments")),
+            results=self._clean_text(payload.get("results")),
+            value=self._clean_text(payload.get("value")),
             verdict=self._clean_text(payload.get("verdict")),
             tags=self._clean_tags(payload.get("tags")),
         )
@@ -87,6 +131,6 @@ class SummaryHarness:
         return deduped[:8]
 
     def _validate_sections(self, sections: SummarySections) -> None:
-        for field_name in ("problem", "method", "findings", "scenarios", "verdict"):
+        for field_name in ("problem", "core_idea", "method", "experiments", "results", "value", "verdict"):
             if not getattr(sections, field_name).strip():
                 raise ValueError(f"Summary field {field_name} is empty")

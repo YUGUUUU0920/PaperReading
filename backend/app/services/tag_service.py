@@ -83,14 +83,49 @@ TAG_CATALOG = [
     "新晋热门",
     "影响力强",
     "口头报告",
-    "Spotlight",
-    "Findings",
+    "聚光论文",
+    "补充收录",
+]
+
+THEME_PRIORITY = [
+    "大模型",
+    "多模态",
+    "RAG",
+    "智能体",
+    "推理",
+    "强化学习",
+    "扩散模型",
+    "图学习",
+    "机器人",
+    "代码生成",
+    "对齐",
+    "计算机视觉",
+    "自然语言处理",
+    "视频理解",
+    "语音音频",
+    "时间序列",
+    "世界模型",
+    "推荐系统",
+    "联邦学习",
+    "医疗AI",
+    "隐私安全",
+    "数据集",
+    "基准评测",
+    "评测分析",
+    "人工智能",
 ]
 
 
 class TagService:
     def catalog_tags(self) -> list[str]:
         return TAG_CATALOG[:]
+
+    def primary_theme(self, paper: Paper | None = None, *, tags: list[str] | None = None) -> str:
+        current_tags = tags or (self.build_tags(paper) if paper else [])
+        for theme in THEME_PRIORITY:
+            if theme in current_tags:
+                return theme
+        return "人工智能"
 
     def build_tags(self, paper: Paper) -> list[str]:
         metadata = paper.metadata or {}
@@ -114,9 +149,9 @@ class TagService:
         if "oral" in track:
             self._append(tags, ["口头报告"])
         if "spotlight" in track:
-            self._append(tags, ["Spotlight"])
+            self._append(tags, ["聚光论文"])
         if "findings" in track:
-            self._append(tags, ["Findings"])
+            self._append(tags, ["补充收录"])
 
         if not tags:
             self._append(tags, ["人工智能"])

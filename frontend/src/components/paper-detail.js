@@ -1,12 +1,13 @@
 import { markdownToHtml } from "../utils/markdown.js";
 import { escapeHtml } from "../utils/dom.js";
 import { buildPaperUrl } from "../utils/url.js";
+import { getTagTone } from "../utils/tags.js";
 
 function renderTags(tags = []) {
   if (!tags.length) return "";
   return `
     <div class="tag-row">
-      ${tags.map((tag) => `<span class="pill pill--tag">${escapeHtml(tag)}</span>`).join("")}
+      ${tags.map((tag) => `<span class="pill pill--tag" data-tone="${getTagTone(tag)}">${escapeHtml(tag)}</span>`).join("")}
     </div>
   `;
 }
@@ -98,11 +99,11 @@ function renderRelated(activePaper) {
                 <div class="paper-card__meta">
                   <span class="pill">${escapeHtml(item.conference.toUpperCase())}</span>
                   <span class="pill">${escapeHtml(item.year)}</span>
-                  <span class="pill">${escapeHtml(item.track || "论文")}</span>
+                  <span class="pill">${escapeHtml(item.track_label || item.track || "论文")}</span>
                 </div>
                 <strong>${escapeHtml(item.title_display || item.title)}</strong>
                 <p class="authors">${escapeHtml(item.authors_text || "")}</p>
-                ${item.tags?.length ? `<div class="tag-row">${item.tags.slice(0, 4).map((tag) => `<span class="pill pill--tag">${escapeHtml(tag)}</span>`).join("")}</div>` : ""}
+                ${item.tags?.length ? `<div class="tag-row">${item.tags.slice(0, 4).map((tag) => `<span class="pill pill--tag" data-tone="${getTagTone(tag)}">${escapeHtml(tag)}</span>`).join("")}</div>` : ""}
                 <p class="preview">${escapeHtml(item.summary_preview || "进入详情页查看导读。")}</p>
               </a>
             `;
@@ -137,7 +138,7 @@ export function renderPaperDetail(state) {
         <div class="paper-card__meta">
           <span class="pill">${escapeHtml(activePaper.conference.toUpperCase())}</span>
           <span class="pill">${escapeHtml(activePaper.year)}</span>
-          <span class="pill">${escapeHtml(activePaper.track || "未分类")}</span>
+          <span class="pill">${escapeHtml(activePaper.track_label || activePaper.track || "未分类")}</span>
         </div>
         <h2>${escapeHtml(activePaper.title_display || activePaper.title)}</h2>
         <p class="authors">${escapeHtml(activePaper.authors_text)}</p>

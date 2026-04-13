@@ -84,8 +84,8 @@ function render() {
       ${renderTopNav("datasets")}
       <section class="toolbar panel toolbar--compact">
         <div class="toolbar-copy">
-          <p class="eyebrow">Paper Library</p>
-          <h1>论文库总览</h1>
+          <p class="eyebrow">Research Coverage</p>
+          <h1>数据概览</h1>
           <p class="toolbar-text">${escapeHtml(state.message)}</p>
         </div>
       </section>

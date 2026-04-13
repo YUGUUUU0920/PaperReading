@@ -11,7 +11,7 @@ export function renderStatusBanner(state) {
   return `
     <section class="status-banner panel">
       <div>
-        <h2>当前进度</h2>
+        <h2>研究快照</h2>
         <p>${escapeHtml(message)}</p>
       </div>
       <div class="status-pills">

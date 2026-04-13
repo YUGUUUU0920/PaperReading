@@ -11,11 +11,12 @@ from backend.app.domain.entities import Paper
 from backend.app.services.tag_service import TagService
 
 
-SENTENCE_RE = re.compile(r"(?<=[.!?])\s+")
 ASCII_WORD_RE = re.compile(r"[A-Za-z]{4,}")
 MARKDOWN_TOKEN_RE = re.compile(r"[#>*`_~\-]+")
 WHITESPACE_RE = re.compile(r"\s+")
-SECTION_LABEL_RE = re.compile(r"^(研究问题|方法概览|主要发现|适用场景|一句话判断)\s*")
+SECTION_LABEL_RE = re.compile(
+    r"^(这篇论文想解决什么|核心思路|方法怎么做|用了什么数据与实验|结果说明了什么|为什么值得关注|研究问题|方法概览|主要发现|适用场景|一句话判断)\s*"
+)
 
 TOPIC_HINTS = [
     ("multimodal", "多模态模型"),
@@ -74,8 +75,10 @@ class SummaryService:
         payload = {
             "model": self.settings.openai_model,
             "messages": harness.build_messages(paper, candidate_tags),
-            "temperature": 0.2,
+            "temperature": 0.15,
         }
+        if self._should_request_structured_output():
+            payload["response_format"] = harness.response_format()
         response = self.http_client.post_json(
             f"{self.settings.openai_base_url}/chat/completions",
             payload,
@@ -110,13 +113,15 @@ class SummaryService:
             return ""
         if model_name.startswith("heuristic"):
             return "即时导读"
-        return f"OpenAI · {model_name}"
+        return f"AI 导读 · {model_name}"
 
     def should_refresh_local_summary(self, paper: Paper) -> bool:
         if not paper.summary.strip():
             return True
         if not paper.summary_model.startswith("heuristic"):
             return False
+        if any(label in paper.summary for label in ("### 研究问题", "### 方法概览", "### 主要发现", "### 适用场景")):
+            return True
         english_hits = ASCII_WORD_RE.findall(paper.summary)
         return len(english_hits) >= 5
 
@@ -125,27 +130,39 @@ class SummaryService:
         title_display = normalize_title_display(paper.title)
         topic = self._infer_topic(paper)
         goal = self._infer_goal(paper)
+        experiments = self._infer_experiments(paper)
+        results = self._infer_results(paper)
 
         if not abstract:
             sections = SummarySections(
-                problem=f"这篇论文大致围绕{topic}展开，但当前还没有拿到摘要内容，因此无法给出更细的中文总结。",
-                method="建议先打开详情页补全摘要，或直接查看 PDF 中的方法与实验部分。",
-                findings="当前数据不足，暂时无法判断作者的核心实验结果。",
-                scenarios=f"适合先加入待读列表，后续再深入阅读 {paper.conference.upper()} {paper.year} 的相关工作。",
-                verdict="目前信息不足，但可以确定它属于你当前检索主题下的相关论文。",
+                problem=f"这篇论文大概率围绕{topic}展开，目标是{goal}，但当前还没有拿到摘要，所以问题定义只能先做粗粒度判断。",
+                core_idea="仅从标题看，作者应该是在现有方法上提出了新的建模方式、训练策略或系统设计，用来改善这一方向的关键痛点。",
+                method="建议优先打开 PDF 的方法图、引言和实验设置部分，这样最快能看清作者究竟改了模型、训练流程还是评测方案。",
+                experiments="摘要未提供，暂时无法确认作者用了哪些数据集、任务设置或对比基线。",
+                results="当前信息不足，不能负责任地判断它到底提升了性能、效率还是鲁棒性。",
+                value=f"如果你正在跟踪 {paper.conference.upper()} {paper.year} 的 {topic} 研究，这篇论文仍然值得先放进待读列表。",
+                verdict="目前信息还不够，但它看起来与当前检索主题高度相关，适合后续补读。",
                 tags=self.tag_service.build_candidate_tags(paper),
             )
             return sections.to_markdown()
 
         sections = SummarySections(
-            problem=f"这篇论文主要关注{topic}，目标大概率是{goal}。",
-            method=(
-                "从标题和摘要来看，作者提出或改造了一套面向该问题的新方法，"
-                f"并围绕模型结构、训练策略、路由机制或评估流程做了专门设计。论文标题可以概括为：{title_display}。"
+            problem=f"这篇论文主要在解决{topic}里的核心痛点，重点想办法{goal}，也就是让这类系统更能用、更稳或更省。",
+            core_idea=(
+                f"从标题和摘要看，作者的核心想法不是简单调参，而是围绕 {title_display} 对关键模块做重新设计，"
+                "希望用更直接的机制把问题卡点拆开处理。"
             ),
-            findings="摘要显示，该工作在实验中取得了正向结果，重点收益通常体现在性能、效率、推理成本或泛化能力中的一个或多个方面。",
-            scenarios=f"适合正在跟踪 {paper.conference.upper()} {paper.year}、并希望快速筛选{topic}方向论文的读者。",
-            verdict=f"这是一篇围绕{topic}展开、重点尝试{goal}的论文，值得先看摘要、方法图和实验表。",
+            method=(
+                "作者大概率提出了一套新的模型结构、训练流程、推理策略或路由机制，"
+                "并把这些设计组合成一个完整方案，而不是只改某一个小技巧。"
+            ),
+            experiments=experiments,
+            results=results,
+            value=(
+                f"如果你在关注 {topic}，这篇论文的价值在于它不只是给出结论，还提供了一种可复用的解决思路。"
+                "读它时优先看方法图、主表格和消融实验，会更快抓住重点。"
+            ),
+            verdict=f"这是一篇围绕{topic}、试图{goal}的工作，适合先看方法框架和主实验，再决定是否精读。",
             tags=self.tag_service.build_candidate_tags(paper),
         )
         return sections.to_markdown()
@@ -158,12 +175,15 @@ class SummaryService:
             text = SECTION_LABEL_RE.sub("", text).strip()
             if len(text) < 18:
                 continue
-            if text in {"研究问题", "方法概览", "主要发现", "适用场景", "一句话判断"}:
+            if text in {"这篇论文想解决什么", "核心思路", "方法怎么做", "用了什么数据与实验", "结果说明了什么", "为什么值得关注", "一句话判断"}:
                 continue
             if len(text) > 88:
                 return f"{text[:88].rstrip('，。；;、 ')}..."
             return text
         return ""
+
+    def _should_request_structured_output(self) -> bool:
+        return "openai.com" in self.settings.openai_base_url
 
     def _infer_topic(self, paper: Paper) -> str:
         haystack = f"{paper.title} {paper.abstract}".lower()
@@ -175,6 +195,36 @@ class SummaryService:
             if hit not in unique_hits:
                 unique_hits.append(hit)
         return "、".join(unique_hits[:3])
+
+    def _infer_experiments(self, paper: Paper) -> str:
+        haystack = f"{paper.title} {paper.abstract}".lower()
+        hints: list[str] = []
+        if any(token in haystack for token in ("benchmark", "evaluation", "dataset", "task", "tasks")):
+            hints.append("作者在公开任务或基准上做了对比实验")
+        if any(token in haystack for token in ("simulation", "simulator", "robot", "control")):
+            hints.append("实验里很可能包含仿真或控制场景")
+        if any(token in haystack for token in ("real-world", "real world", "in-the-wild")):
+            hints.append("摘要还暗示作者关注真实场景表现")
+        if any(token in haystack for token in ("ablation", "analysis")):
+            hints.append("并补了分析或消融来解释方法为什么有效")
+        if not hints:
+            return "摘要没有完整列出数据集名称，但可以判断作者至少做了和现有方法的对比实验，用来验证方案是否真正带来收益。"
+        return f"{'，'.join(hints[:3])}。摘要没有把所有数据集名称展开，因此更细的实验设置还需要看正文。"
+
+    def _infer_results(self, paper: Paper) -> str:
+        haystack = f"{paper.title} {paper.abstract}".lower()
+        hints: list[str] = []
+        if any(token in haystack for token in ("state-of-the-art", "sota", "outperform", "superior", "better than", "improves over")):
+            hints.append("结果指向性能优于已有方法")
+        if any(token in haystack for token in ("efficient", "efficiency", "faster", "speed", "latency")):
+            hints.append("同时强调了效率或速度上的改进")
+        if any(token in haystack for token in ("robust", "robustness", "generalization", "generalize")):
+            hints.append("还提到模型在泛化或稳定性上更可靠")
+        if any(token in haystack for token in ("reduce", "lower", "less", "compression")):
+            hints.append("并可能降低了算力、内存或误差成本")
+        if not hints:
+            return "摘要明确传达了实验结果是正向的，但没有把提升幅度写得很细；更值得去正文里看主表格和误差分析。"
+        return f"{'；'.join(hints[:3])}。这说明它不是只讲想法，而是试图用实验证明方案确实更实用。"
 
     def _infer_goal(self, paper: Paper) -> str:
         haystack = f"{paper.title} {paper.abstract}".lower()

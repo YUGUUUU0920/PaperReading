@@ -8,8 +8,8 @@ export function renderTopNav(active) {
   return `
     <header class="top-nav panel">
       <div class="brand-block">
-        <p class="eyebrow">Paper Reading</p>
-        <strong class="brand-title">顶会论文助手</strong>
+        <p class="eyebrow">Research Atlas</p>
+        <strong class="brand-title">论文研究图谱</strong>
       </div>
       <nav class="nav-links">
         ${items

@@ -211,6 +211,8 @@ class PaperService:
         payload["summary_preview"] = self.summary_service.build_preview(paper)
         payload["summary_source_label"] = self.summary_service.describe_summary_source(paper.summary_model)
         payload["tags"] = tags
+        payload["primary_theme"] = self.tag_service.primary_theme(tags=tags)
+        payload["track_label"] = self._track_label(paper.track)
         payload["citation_count"] = int(metadata.get("citation_count") or 0)
         payload["top_10_percent_cited"] = bool(metadata.get("top_10_percent_cited"))
         payload["code_url"] = str(metadata.get("code_url", "")).strip()
@@ -341,12 +343,32 @@ class PaperService:
                     "conference": candidate.conference,
                     "year": candidate.year,
                     "track": candidate.track,
+                    "track_label": self._track_label(candidate.track),
                     "title": candidate.title,
                     "title_display": candidate.to_dict()["title_display"],
                     "authors_text": ", ".join(candidate.authors),
                     "summary_preview": self.summary_service.build_preview(candidate),
                     "tags": self.tag_service.build_tags(candidate),
+                    "primary_theme": self.tag_service.primary_theme(candidate),
                     "citation_count": int(candidate.metadata.get("citation_count") or 0),
                 }
             )
         return related_items
+
+    def _track_label(self, track: str) -> str:
+        lowered = track.strip().lower()
+        if not lowered:
+            return "未分类"
+        if "oral" in lowered:
+            return "口头报告"
+        if "spotlight" in lowered:
+            return "聚光论文"
+        if "findings" in lowered:
+            return "补充收录"
+        if "poster" in lowered:
+            return "海报展示"
+        if "proceedings" in lowered:
+            return "论文集收录"
+        if "conference" in lowered:
+            return "会议论文"
+        return track

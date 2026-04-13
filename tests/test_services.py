@@ -11,9 +11,10 @@ class SummaryHarnessTests(unittest.TestCase):
     def test_parses_json_and_keeps_candidate_tags(self) -> None:
         harness = SummaryHarness(fallback_tags=["多模态", "高被引"])
         sections = harness.parse_response(
-            '{"problem":"研究多模态模型。","method":"提出新的训练方案。","findings":"实验优于基线。","scenarios":"适合多模态检索。","verdict":"值得精读。","tags":["多模态","视觉语言模型"]}'
+            '{"problem":"研究多模态模型。","core_idea":"先把不同模态的信息放到同一空间里理解。","method":"提出新的训练方案。","experiments":"在公开基准上做了对比实验。","results":"实验优于基线。","value":"适合拿来理解多模态系统怎么做稳定训练。","verdict":"值得精读。","tags":["多模态","视觉语言模型"]}'
         )
         self.assertEqual(sections.problem, "研究多模态模型。")
+        self.assertEqual(sections.core_idea, "先把不同模态的信息放到同一空间里理解。")
         self.assertIn("多模态", sections.tags)
         self.assertIn("高被引", sections.tags)
 
@@ -51,4 +52,4 @@ class TagServiceTests(unittest.TestCase):
         self.assertIn("影响力强", tags)
         self.assertIn("开源了代码", tags)
         self.assertIn("开放获取", tags)
-
+        self.assertEqual(service.primary_theme(tags=tags), "大模型")

@@ -21,7 +21,7 @@ const store = createStore({
     sort: "default",
     page: 1,
   },
-  message: "准备就绪。选择会议、年份和关键词后开始检索。",
+  message: "准备就绪。先定义一个研究主题，再开始探索论文。",
   dataset: null,
   papers: [],
   resultTags: [],
@@ -226,7 +226,7 @@ async function runSearch({ refresh }) {
     hasSearched: true,
     message: refresh
       ? `正在更新并整理 ${filters.conference.toUpperCase()} ${filters.year} 的结果...`
-      : `正在整理 ${filters.conference.toUpperCase()} ${filters.year} 第 ${filters.page} 页的检索结果...`,
+      : `正在整理 ${filters.conference.toUpperCase()} ${filters.year} 第 ${filters.page} 页的主题结果...`,
   });
   render();
   try {

@@ -2,6 +2,7 @@ import { apiClient } from "./api/client.js";
 import { renderTopNav } from "./components/top-nav.js";
 import { createStore } from "./state/store.js";
 import { escapeHtml } from "./utils/dom.js";
+import { getTagTone } from "./utils/tags.js";
 import { buildPaperUrl } from "./utils/url.js";
 
 const store = createStore({
@@ -19,7 +20,7 @@ function renderTagRow(tags = []) {
   if (!tags.length) return "";
   return `
     <div class="tag-row">
-      ${tags.slice(0, 5).map((tag) => `<span class="pill pill--tag">${escapeHtml(tag)}</span>`).join("")}
+      ${tags.slice(0, 5).map((tag) => `<span class="pill pill--tag" data-tone="${getTagTone(tag)}">${escapeHtml(tag)}</span>`).join("")}
     </div>
   `;
 }
@@ -94,7 +95,7 @@ function renderSavedCard(paper, listType) {
       <div class="paper-card__meta">
         <span class="pill">${escapeHtml(paper.conference.toUpperCase())}</span>
         <span class="pill">${escapeHtml(paper.year)}</span>
-        <span class="pill">${escapeHtml(paper.track || "未分类")}</span>
+        <span class="pill">${escapeHtml(paper.track_label || paper.track || "未分类")}</span>
       </div>
       <h3>${escapeHtml(paper.title_display || paper.title)}</h3>
       <p class="authors">${escapeHtml(paper.authors_text || "")}</p>
@@ -166,7 +167,7 @@ function render() {
       ${renderTopNav("lists")}
       <section class="toolbar panel toolbar--compact">
         <div class="toolbar-copy">
-          <p class="eyebrow">Reading Lists</p>
+          <p class="eyebrow">Reading Workspace</p>
           <h1>收藏与待读</h1>
           <p class="toolbar-text">${escapeHtml(state.message)}</p>
           <div class="status-pills">

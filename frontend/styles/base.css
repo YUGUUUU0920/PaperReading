@@ -8,6 +8,10 @@ body {
   min-height: 100%;
 }
 
+html {
+  scroll-behavior: smooth;
+}
+
 body {
   color: var(--text);
   font-family: "Avenir Next", "Segoe UI", sans-serif;
@@ -38,3 +42,15 @@ p {
   margin: 0;
 }
 
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  *,
+  *::before,
+  *::after {
+    animation: none !important;
+    transition: none !important;
+  }
+}
