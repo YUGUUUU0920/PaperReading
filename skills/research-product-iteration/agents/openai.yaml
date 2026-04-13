@@ -1,0 +1,8 @@
+interface:
+  display_name: "Research Product Iteration"
+  short_description: "调研竞品、写简报，并推动一项小步产品迭代"
+  brand_color: "#0F766E"
+  default_prompt: "Use $research-product-iteration to scan paper-reading competitors, write a concise dated iteration report, implement at most one low-risk improvement in this repo, and run regressions."
+
+policy:
+  allow_implicit_invocation: true
