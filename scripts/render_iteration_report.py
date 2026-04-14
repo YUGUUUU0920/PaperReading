@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import re
 import shutil
 import subprocess
@@ -13,6 +14,7 @@ from pathlib import Path
 SECTION_RE = re.compile(r"^##\s+(?P<title>.+)$")
 DATE_RE = re.compile(r"(\d{4}-\d{2}-\d{2})")
 DESKTOP_DIR_NAME = "Research Atlas 日报"
+ARCHIVE_DIR_ENV = "RESEARCH_ATLAS_DAILY_BRIEF_DIR"
 DESKTOP_PDF_TEMPLATE = "{date} Research Atlas 产品迭代日报.pdf"
 DESKTOP_HTML_TEMPLATE = "{date} Research Atlas 产品迭代日报.html"
 DESKTOP_MANIFEST_NAME = "reports.json"
@@ -93,7 +95,8 @@ def inline_markdown(text: str) -> str:
 
 
 def desktop_output_dir() -> Path:
-    root = Path.home() / "Desktop" / DESKTOP_DIR_NAME
+    override = os.environ.get(ARCHIVE_DIR_ENV, "").strip()
+    root = Path(override).expanduser() if override else Path.home() / "Desktop" / DESKTOP_DIR_NAME
     root.mkdir(parents=True, exist_ok=True)
     return root
 

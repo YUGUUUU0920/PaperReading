@@ -252,7 +252,7 @@
       <div class="kpi-grid">
         <article class="kpi"><strong>5</strong><span>观察产品</span></article>
         <article class="kpi"><strong>3</strong><span>可借鉴方向</span></article>
-        <article class="kpi"><strong>3</strong><span>今日动作</span></article>
+        <article class="kpi"><strong>4</strong><span>今日动作</span></article>
       </div>
     </section>
 
@@ -290,11 +290,11 @@
     <section class="grid-two">
       <article class="panel">
         <h2>今天已经做了什么</h2>
-        <ul><li>补上了真正的 Codex 日更自动化，写入 <strong>~/.codex/automations/daily-product-loop/automation.toml</strong> 和状态库。</li><li>新增了本地 <strong>launchd</strong> 日报同步链路，并在后台进程无权访问 <strong>~/Documents</strong> 时自动写出中文说明文件，避免静默失败。</li><li>把日报模板改成中文结构化骨架，并回填了今天这份报告，避免再生成只有英文占位符的空壳文件。</li></ul>
+        <ul><li>补上了真正的 Codex 日更自动化，写入 <strong>~/.codex/automations/daily-product-loop/automation.toml</strong> 和状态库。</li><li>把本地仓库迁到 <strong>~/Workspace/PaperReading</strong>，避开 <strong>Documents</strong> 的后台访问限制。</li><li>新增了本地 <strong>launchd</strong> 日报同步链路，并把实际归档目录迁到 <strong>~/Workspace/Research Atlas 日报</strong>；桌面上的 <strong>Research Atlas 日报</strong> 现在是一个直达入口，不再承担真实写入。</li><li>把日报模板改成中文结构化骨架，并回填了今天这份报告，避免再生成只有英文占位符的空壳文件。</li></ul>
       </article>
       <article class="panel">
         <h2>回归结果</h2>
-        <ul><li><strong>python3 -m unittest discover -s tests -p &#x27;test_*.py&#x27;</strong>：通过</li><li><strong>python3 -m compileall backend frontend tests scripts</strong>：通过</li><li><strong>./scripts/run_daily_report.sh</strong>：通过，桌面 PDF 与归档索引已更新</li><li><strong>launchctl kickstart -k gui/$(id -u)/com.researchatlas.daily-report</strong>：触发成功，但后台进程当前被 macOS 限制访问 <strong>~/Documents</strong></li></ul>
+        <ul><li><strong>python3 -m unittest discover -s tests -p &#x27;test_*.py&#x27;</strong>：通过</li><li><strong>python3 -m compileall backend frontend tests scripts</strong>：通过</li><li><strong>./scripts/run_daily_report.sh</strong>：通过，归档 PDF 与索引已更新</li><li><strong>launchctl kickstart -k gui/$(id -u)/com.researchatlas.daily-report</strong>：通过，后台调度已经可以完成整条生成链路</li></ul>
       </article>
     </section>
 

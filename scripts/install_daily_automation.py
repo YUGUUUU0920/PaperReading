@@ -6,6 +6,7 @@ from pathlib import Path
 from textwrap import dedent
 from zoneinfo import ZoneInfo
 import json
+import shutil
 import sqlite3
 import subprocess
 import argparse
@@ -22,6 +23,7 @@ AUTOMATION_EXECUTION_ENVIRONMENT = "local"
 LAUNCH_AGENT_LABEL = "com.researchatlas.daily-report"
 LAUNCH_AGENT_HOUR = 9
 LAUNCH_AGENT_MINUTE = 12
+ARCHIVE_DIR_NAME = "Research Atlas 日报"
 
 
 def repo_root() -> Path:
@@ -56,14 +58,16 @@ def list_literal(items: list[str]) -> str:
 def build_automation_prompt(project_root: Path) -> str:
     research_skill = Path.home() / ".codex" / "skills" / "research-product-iteration" / "SKILL.md"
     visual_skill = Path.home() / ".codex" / "skills" / "visual-iteration-report" / "SKILL.md"
+    harness_path = project_root / "docs" / "PRODUCT_ITERATION_HARNESS.md"
+    report_dir = project_root / "reports" / "product-iterations"
     return dedent(
         f"""
         Use [{'$'}research-product-iteration]({research_skill}) first, then [{'$'}visual-iteration-report]({visual_skill}) after the markdown report is ready.
 
-        Follow [/Users/yugugaode/Documents/New project/docs/PRODUCT_ITERATION_HARNESS.md]({project_root / 'docs' / 'PRODUCT_ITERATION_HARNESS.md'}) and keep the run small-batch.
+        Follow [{harness_path}]({harness_path}) and keep the run small-batch.
 
         For today's Asia/Shanghai date:
-        - prepare or update one dated markdown report under [{project_root / 'reports' / 'product-iterations'}]({project_root / 'reports' / 'product-iterations'})
+        - prepare or update one dated markdown report under [{report_dir}]({report_dir})
         - scan official competitor product pages for paper reading and literature discovery products
         - write 3 to 5 concise competitor signals
         - choose at most one low-risk product improvement and implement it only if it is safe
@@ -75,6 +79,49 @@ def build_automation_prompt(project_root: Path) -> str:
         Keep user-facing copy product-first. End with exactly one inbox item that tells me what changed and what I should look at next.
         """
     ).strip()
+
+
+def archive_root() -> Path:
+    return Path.home() / "Workspace" / ARCHIVE_DIR_NAME
+
+
+def desktop_archive_link() -> Path:
+    return Path.home() / "Desktop" / ARCHIVE_DIR_NAME
+
+
+def ensure_desktop_archive_shortcut() -> tuple[Path, Path]:
+    archive_dir = archive_root()
+    desktop_link = desktop_archive_link()
+    archive_dir.parent.mkdir(parents=True, exist_ok=True)
+
+    if desktop_link.exists() and not desktop_link.is_symlink():
+        if archive_dir.exists():
+            for item in desktop_link.iterdir():
+                target = archive_dir / item.name
+                if target.exists():
+                    if item.is_dir():
+                        shutil.copytree(item, target, dirs_exist_ok=True)
+                        shutil.rmtree(item)
+                    else:
+                        shutil.copy2(item, target)
+                        item.unlink()
+                else:
+                    shutil.move(str(item), str(target))
+            desktop_link.rmdir()
+        else:
+            shutil.move(str(desktop_link), str(archive_dir))
+
+    archive_dir.mkdir(parents=True, exist_ok=True)
+
+    if desktop_link.is_symlink():
+        current_target = desktop_link.resolve(strict=False)
+        if current_target != archive_dir:
+            desktop_link.unlink()
+            desktop_link.symlink_to(archive_dir, target_is_directory=True)
+    elif not desktop_link.exists():
+        desktop_link.symlink_to(archive_dir, target_is_directory=True)
+
+    return archive_dir, desktop_link
 
 
 def build_memory_seed() -> str:
@@ -102,21 +149,22 @@ def build_launch_wrapper(project_root: Path) -> str:
         export PATH="/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin"
 
         PROJECT_ROOT="{project_root}"
+        ARCHIVE_ROOT="$HOME/Workspace/{ARCHIVE_DIR_NAME}"
+        export RESEARCH_ATLAS_DAILY_BRIEF_DIR="$ARCHIVE_ROOT"
         PYTHON_BIN="/usr/bin/python3"
         PREPARE_SCRIPT="$PROJECT_ROOT/scripts/prepare_iteration_report.py"
         RENDER_SCRIPT="$PROJECT_ROOT/scripts/render_iteration_report.py"
         REPORTS_DIR="$PROJECT_ROOT/reports/product-iterations"
         LAUNCH_LOG_DIR="$HOME/Library/Logs/ResearchAtlas"
         LOG_FILE="$LAUNCH_LOG_DIR/daily-report-run.log"
-        DESKTOP_DIR="$HOME/Desktop/Research Atlas 日报"
-        STATUS_NOTE="$DESKTOP_DIR/launchd-访问说明.txt"
+        STATUS_NOTE="$ARCHIVE_ROOT/launchd-访问说明.txt"
         REPORT_DATE="${{REPORT_DATE_OVERRIDE:-$(date '+%Y-%m-%d')}}"
 
-        mkdir -p "$LAUNCH_LOG_DIR" "$DESKTOP_DIR"
+        mkdir -p "$LAUNCH_LOG_DIR" "$ARCHIVE_ROOT"
 
         if [[ ! -r "$PREPARE_SCRIPT" || ! -r "$RENDER_SCRIPT" || ! -w "$REPORTS_DIR" ]]; then
           {{
-            echo "[$(date '+%Y-%m-%d %H:%M:%S %Z')] launchd cannot access the repo under Documents."
+            echo "[$(date '+%Y-%m-%d %H:%M:%S %Z')] launchd cannot access the repo directory."
             echo "repo=$PROJECT_ROOT"
           }} >> "$LOG_FILE"
           cat > "$STATUS_NOTE" <<'EOF'
@@ -124,7 +172,7 @@ Research Atlas 日报后台同步当前没有拿到项目目录的访问权限�
 
 已确认的现象：
 - 系统级 launchd 可以正常触发
-- 但它不能读写位于 ~/Documents 下的仓库文件
+- 但它不能正常读写当前仓库目录
 
 最直接的解决方法：
 1. 把仓库移到一个非受保护目录，比如 ~/Workspace
@@ -134,7 +182,7 @@ Research Atlas 日报后台同步当前没有拿到项目目录的访问权限�
 
 说明：
 - Codex 应用内的每日 9 点自动化已经创建完成
-- 现在缺的是系统后台进程对 Documents 的访问能力
+- 现在缺的是系统后台进程对仓库目录的访问能力
 EOF
           exit 1
         fi
@@ -153,13 +201,13 @@ Research Atlas 日报后台同步已经触发，但系统后台进程当前不�
 
 说明：
 - Codex 应用内的每日 9 点自动化已经创建完成
-- 当前受限的是系统后台进程访问 ~/Documents 下的工程文件
+- 当前受限的是系统后台进程访问工程文件
 EOF
             exit 1
           fi
           if ! "$PYTHON_BIN" "$RENDER_SCRIPT" --date "$REPORT_DATE"; then
             cat > "$STATUS_NOTE" <<'EOF'
-Research Atlas 日报的桌面渲染步骤已触发，但系统后台进程当前不能完成项目文件的读取或写入。
+Research Atlas 日报的归档步骤已触发，但系统后台进程当前不能完成日报目录的读取或写入。
 
 建议处理方式：
 1. 把仓库移到一个非受保护目录，比如 ~/Workspace
@@ -169,7 +217,7 @@ Research Atlas 日报的桌面渲染步骤已触发，但系统后台进程当�
 
 说明：
 - Codex 应用内的每日 9 点自动化已经创建完成
-- 当前受限的是系统后台进程访问 ~/Documents 下的工程文件
+- 当前受限的是系统后台进程访问归档目录或工程文件
 EOF
             exit 1
           fi
@@ -351,6 +399,7 @@ def main() -> None:
     args = parser.parse_args()
 
     project_root = repo_root()
+    ensure_desktop_archive_shortcut()
     ensure_automation_files(project_root)
     record = ensure_automation_db(project_root)
     plist_path = install_launch_agent(project_root, run_now=args.run_now)
