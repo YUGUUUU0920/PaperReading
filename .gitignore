@@ -4,3 +4,4 @@ __pycache__/
 data/pycache/
 data/papers.db
 data/*.sqlite3
+logs/
