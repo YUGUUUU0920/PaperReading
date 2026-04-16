@@ -51,22 +51,23 @@ export function renderSearchToolbar(state) {
       <div class="toolbar-copy toolbar-copy--compact">
         <div class="toolbar-copy__row">
           <div>
-            <p class="eyebrow">Research Explorer</p>
-            <h1>论文发现</h1>
+            <p class="eyebrow">Launch Explorer</p>
+            <h1>榜单发现</h1>
             <p class="toolbar-text">
-              按会议、年份、关键词与标签筛选论文。如果你还没想好从哪里开始，可以先看看热门主题。
+              按会议、年份、关键词与标签筛选研究新品。如果你还没想好从哪里开始，可以先看看专题合集或今日主榜。
             </p>
           </div>
           <div class="toolbar-jump-row">
-            <a class="button button-chip" href="/themes">热门主题</a>
+            <a class="button button-chip" href="/">首页</a>
+            <a class="button button-chip" href="/themes">专题合集</a>
             <a class="button button-chip" href="/lists">阅读清单</a>
             <a class="button button-chip" href="/datasets">论文库</a>
           </div>
         </div>
         <div class="hero-pill-row">
           <span class="signal">关键词检索</span>
-          <span class="signal">中文标签</span>
-          <span class="signal">引用排序</span>
+          <span class="signal">中文专题</span>
+          <span class="signal">热度排序</span>
           <span class="signal">独立导读页</span>
         </div>
         ${renderWorkbenchStats(bootstrap, filters)}

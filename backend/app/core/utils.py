@@ -9,7 +9,7 @@ from urllib.parse import urljoin, urlparse
 TAG_RE = re.compile(r"<[^>]+>")
 WHITESPACE_RE = re.compile(r"\s+")
 LATEX_BRACED_CMD_RE = re.compile(r"\\[A-Za-z]+\s*\{([^{}]+)\}")
-LATEX_SIMPLE_CMD_RE = re.compile(r"\\(?:bf|rm|it|tt|mathrm|textrm|mathit|mathtt|mathbf|mathbb|mathcal|mathsf)\s*")
+LATEX_SIMPLE_CMD_RE = re.compile(r"\\(?:bf|rm|it|tt|texttt|textbf|textsf|mathrm|textrm|mathit|mathtt|mathbf|mathbb|mathcal|mathsf)\s*")
 HREF_RE = re.compile(r'<a[^>]+href=["\'](?P<href>[^"\']+)["\'][^>]*>(?P<label>.*?)</a>', re.S)
 RESOURCE_HOSTS = {
     "github.com": "github",

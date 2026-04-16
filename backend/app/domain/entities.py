@@ -46,3 +46,37 @@ class DatasetStatus:
 
     def to_dict(self) -> dict[str, Any]:
         return asdict(self)
+
+
+@dataclass
+class ViewerProfile:
+    id: str
+    display_name: str
+    profile_type: str = "guest"
+    created_at: str = ""
+    updated_at: str = ""
+
+    def to_dict(self) -> dict[str, Any]:
+        payload = asdict(self)
+        payload["is_guest"] = self.profile_type == "guest"
+        payload["is_seed"] = self.profile_type == "seed"
+        return payload
+
+
+@dataclass
+class PaperComment:
+    id: int | None
+    paper_id: int
+    profile_id: str
+    display_name: str
+    profile_type: str
+    source: str
+    content: str
+    created_at: str = ""
+    updated_at: str = ""
+    sort_order: int = 0
+
+    def to_dict(self) -> dict[str, Any]:
+        payload = asdict(self)
+        payload["is_seed"] = self.source == "seed" or self.profile_type == "seed"
+        return payload

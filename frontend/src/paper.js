@@ -12,9 +12,15 @@ const store = createStore({
     summaryEnabled: false,
   },
   activePaper: null,
+  viewer: null,
+  viewerDraftName: "",
+  comments: [],
   backUrl: "/",
   loadingDetail: false,
   loadingSummary: false,
+  loadingComments: false,
+  postingComment: false,
+  updatingViewerName: false,
   message: "正在准备论文详情页...",
 });
 
@@ -83,6 +89,79 @@ function bindEvents() {
       }
     });
   });
+
+  const viewerSaveButton = qs("#viewer-name-save");
+  if (viewerSaveButton) {
+    viewerSaveButton.addEventListener("click", async () => {
+      const input = qs("#viewer-name-input");
+      const displayName = String(input?.value || "").trim();
+      if (!displayName) {
+        store.setState({ message: "先给自己起个昵称。", viewerDraftName: "" });
+        render();
+        return;
+      }
+      store.setState({ updatingViewerName: true, message: "正在保存昵称..." });
+      render();
+      try {
+        const data = await apiClient.updateViewer({ displayName });
+        const comments = store
+          .getState()
+          .comments.map((item) => (item.profile_id === data.viewer.id ? { ...item, display_name: data.viewer.display_name } : item));
+        store.setState({
+          viewer: data.viewer,
+          viewerDraftName: data.viewer.display_name,
+          comments,
+          message: "昵称已保存。",
+        });
+      } catch (error) {
+        store.setState({ message: error.message });
+      } finally {
+        store.setState({ updatingViewerName: false });
+        render();
+      }
+    });
+  }
+
+  const commentForm = qs("#comment-form");
+  if (commentForm) {
+    commentForm.addEventListener("submit", async (event) => {
+      event.preventDefault();
+      const paper = store.getState().activePaper;
+      const textarea = qs("#comment-input");
+      const content = String(textarea?.value || "").trim();
+      if (!paper) return;
+      let submitted = false;
+      store.setState({ postingComment: true, message: "正在发布评论..." });
+      render();
+      try {
+        const data = await apiClient.addComment(paper.id, { content });
+        store.setState({
+          viewer: data.viewer,
+          viewerDraftName: data.viewer.display_name,
+          comments: [...store.getState().comments, data.item],
+          message: "评论已发布。",
+        });
+        submitted = true;
+      } catch (error) {
+        store.setState({ message: error.message });
+      } finally {
+        store.setState({ postingComment: false });
+        render();
+        if (submitted) {
+          const refreshedTextarea = qs("#comment-input");
+          if (refreshedTextarea) refreshedTextarea.value = "";
+        }
+      }
+    });
+  }
+
+  const viewerInput = qs("#viewer-name-input");
+  if (viewerInput) {
+    viewerInput.addEventListener("input", (event) => {
+      const target = event.target;
+      store.setState({ viewerDraftName: String(target?.value || "") });
+    });
+  }
 }
 
 async function bootstrap() {
@@ -106,20 +185,24 @@ async function bootstrap() {
     bootstrap: bootstrapData,
     backUrl: buildSearchUrl(filters),
     loadingDetail: true,
+    loadingComments: true,
     message: "正在整理论文详情、标签与相关资源...",
   });
   render();
 
   try {
-    const data = await apiClient.getPaper(id);
+    const [paperData, commentsData] = await Promise.all([apiClient.getPaper(id), apiClient.getComments(id)]);
     store.setState({
-      activePaper: data.item,
+      activePaper: paperData.item,
+      viewer: commentsData.viewer,
+      viewerDraftName: commentsData.viewer?.display_name || "",
+      comments: commentsData.items || [],
       message: "论文详情已加载。",
     });
   } catch (error) {
     store.setState({ message: error.message });
   } finally {
-    store.setState({ loadingDetail: false });
+    store.setState({ loadingDetail: false, loadingComments: false });
     render();
   }
 }

@@ -5,7 +5,7 @@ import sqlite3
 from pathlib import Path
 
 from backend.app.core.utils import utc_now_iso
-from backend.app.domain.entities import DatasetStatus, Paper
+from backend.app.domain.entities import DatasetStatus, Paper, PaperComment, ViewerProfile
 
 
 class SqliteRepository:
@@ -71,6 +71,28 @@ class SqliteRepository:
 
                 CREATE INDEX IF NOT EXISTS idx_saved_entries_list_type
                 ON saved_entries(list_type, updated_at DESC);
+
+                CREATE TABLE IF NOT EXISTS profiles (
+                    id TEXT PRIMARY KEY,
+                    display_name TEXT NOT NULL,
+                    profile_type TEXT NOT NULL DEFAULT 'guest',
+                    created_at TEXT NOT NULL DEFAULT '',
+                    updated_at TEXT NOT NULL DEFAULT ''
+                );
+
+                CREATE TABLE IF NOT EXISTS comments (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    paper_id INTEGER NOT NULL,
+                    profile_id TEXT NOT NULL,
+                    source TEXT NOT NULL DEFAULT 'user',
+                    content TEXT NOT NULL,
+                    created_at TEXT NOT NULL DEFAULT '',
+                    updated_at TEXT NOT NULL DEFAULT '',
+                    sort_order INTEGER NOT NULL DEFAULT 0
+                );
+
+                CREATE INDEX IF NOT EXISTS idx_comments_paper
+                ON comments(paper_id, sort_order ASC, created_at ASC);
                 """
             )
             self._ensure_saved_entry_columns(connection)
@@ -465,6 +487,126 @@ class SqliteRepository:
             ).fetchone()
         return int(row["count"]) if row else 0
 
+    def get_profile(self, profile_id: str) -> ViewerProfile | None:
+        normalized = profile_id.strip()
+        if not normalized:
+            return None
+        with self._connect() as connection:
+            row = connection.execute(
+                "SELECT * FROM profiles WHERE id = ?",
+                (normalized,),
+            ).fetchone()
+        if not row:
+            return None
+        return self._row_to_profile(row)
+
+    def upsert_profile(self, profile: ViewerProfile) -> None:
+        with self._connect() as connection:
+            connection.execute(
+                """
+                INSERT INTO profiles (id, display_name, profile_type, created_at, updated_at)
+                VALUES (?, ?, ?, ?, ?)
+                ON CONFLICT(id) DO UPDATE SET
+                    display_name = excluded.display_name,
+                    profile_type = excluded.profile_type,
+                    updated_at = excluded.updated_at
+                """,
+                (
+                    profile.id,
+                    profile.display_name,
+                    profile.profile_type,
+                    profile.created_at,
+                    profile.updated_at,
+                ),
+            )
+
+    def update_profile_name(self, profile_id: str, display_name: str) -> None:
+        with self._connect() as connection:
+            connection.execute(
+                """
+                UPDATE profiles
+                SET display_name = ?, updated_at = ?
+                WHERE id = ?
+                """,
+                (display_name, utc_now_iso(), profile_id),
+            )
+
+    def list_comments(self, paper_id: int) -> list[PaperComment]:
+        with self._connect() as connection:
+            rows = connection.execute(
+                """
+                SELECT c.*, p.display_name, p.profile_type
+                FROM comments AS c
+                JOIN profiles AS p
+                    ON p.id = c.profile_id
+                WHERE c.paper_id = ?
+                ORDER BY
+                    CASE WHEN c.source = 'seed' THEN 0 ELSE 1 END ASC,
+                    c.sort_order ASC,
+                    c.created_at ASC,
+                    c.id ASC
+                """,
+                (paper_id,),
+            ).fetchall()
+        return [self._row_to_comment(row) for row in rows]
+
+    def count_comments(self, paper_id: int) -> int:
+        with self._connect() as connection:
+            row = connection.execute(
+                "SELECT COUNT(*) AS count FROM comments WHERE paper_id = ?",
+                (paper_id,),
+            ).fetchone()
+        return int(row["count"]) if row else 0
+
+    def has_seed_comments(self, paper_id: int) -> bool:
+        with self._connect() as connection:
+            row = connection.execute(
+                "SELECT 1 FROM comments WHERE paper_id = ? AND source = 'seed' LIMIT 1",
+                (paper_id,),
+            ).fetchone()
+        return row is not None
+
+    def add_comment(
+        self,
+        *,
+        paper_id: int,
+        profile_id: str,
+        source: str,
+        content: str,
+        sort_order: int = 0,
+    ) -> PaperComment:
+        timestamp = utc_now_iso()
+        with self._connect() as connection:
+            cursor = connection.execute(
+                """
+                INSERT INTO comments (
+                    paper_id, profile_id, source, content, created_at, updated_at, sort_order
+                ) VALUES (?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    paper_id,
+                    profile_id,
+                    source,
+                    content,
+                    timestamp,
+                    timestamp,
+                    sort_order,
+                ),
+            )
+            row = connection.execute(
+                """
+                SELECT c.*, p.display_name, p.profile_type
+                FROM comments AS c
+                JOIN profiles AS p
+                    ON p.id = c.profile_id
+                WHERE c.id = ?
+                """,
+                (cursor.lastrowid,),
+            ).fetchone()
+        if not row:
+            raise RuntimeError("Failed to insert comment")
+        return self._row_to_comment(row)
+
     def ensure_dataset_from_existing_data(self, conference: str, year: int) -> DatasetStatus | None:
         count = self.count_papers(conference=conference, year=year)
         if count <= 0:
@@ -510,6 +652,29 @@ class SqliteRepository:
             last_synced_at=row["last_synced_at"],
             last_error=row["last_error"],
             updated_at=row["updated_at"],
+        )
+
+    def _row_to_profile(self, row: sqlite3.Row) -> ViewerProfile:
+        return ViewerProfile(
+            id=str(row["id"]),
+            display_name=str(row["display_name"]),
+            profile_type=str(row["profile_type"] or "guest"),
+            created_at=str(row["created_at"] or ""),
+            updated_at=str(row["updated_at"] or ""),
+        )
+
+    def _row_to_comment(self, row: sqlite3.Row) -> PaperComment:
+        return PaperComment(
+            id=int(row["id"]),
+            paper_id=int(row["paper_id"]),
+            profile_id=str(row["profile_id"]),
+            display_name=str(row["display_name"]),
+            profile_type=str(row["profile_type"] or "guest"),
+            source=str(row["source"] or "user"),
+            content=str(row["content"] or ""),
+            created_at=str(row["created_at"] or ""),
+            updated_at=str(row["updated_at"] or ""),
+            sort_order=int(row["sort_order"] or 0),
         )
 
     def _load_existing_metadata(self, papers: list[Paper]) -> dict[tuple[str, str], dict]:

@@ -14,6 +14,7 @@ from backend.app.services.tag_service import TagService
 ASCII_WORD_RE = re.compile(r"[A-Za-z]{4,}")
 MARKDOWN_TOKEN_RE = re.compile(r"[#>*`_~\-]+")
 WHITESPACE_RE = re.compile(r"\s+")
+SECTION_HEADING_RE = re.compile(r"^###\s+(.+?)\s*$")
 SECTION_LABEL_RE = re.compile(
     r"^(这篇论文想解决什么|核心思路|方法怎么做|用了什么数据与实验|结果说明了什么|为什么值得关注|研究问题|方法概览|主要发现|适用场景|一句话判断)\s*"
 )
@@ -168,19 +169,65 @@ class SummaryService:
         return sections.to_markdown()
 
     def _preview_from_summary(self, summary: str) -> str:
+        sections = self._summary_sections(summary)
+        decision_preview = self._decision_preview(sections)
+        if decision_preview:
+            return decision_preview
+
         paragraphs = [part.strip() for part in summary.split("\n\n") if part.strip()]
         for paragraph in paragraphs:
-            text = MARKDOWN_TOKEN_RE.sub(" ", paragraph)
-            text = WHITESPACE_RE.sub(" ", text).strip()
-            text = SECTION_LABEL_RE.sub("", text).strip()
+            text = self._clean_preview_text(paragraph)
             if len(text) < 18:
                 continue
             if text in {"这篇论文想解决什么", "核心思路", "方法怎么做", "用了什么数据与实验", "结果说明了什么", "为什么值得关注", "一句话判断"}:
                 continue
-            if len(text) > 88:
-                return f"{text[:88].rstrip('，。；;、 ')}..."
-            return text
+            return self._truncate_preview(text)
         return ""
+
+    def _decision_preview(self, sections: dict[str, str]) -> str:
+        verdict = sections.get("一句话判断", "")
+        value = sections.get("为什么值得关注", "") or sections.get("适用场景", "")
+
+        if verdict and len(verdict) >= 12:
+            return self._truncate_preview(verdict)
+        if verdict and value:
+            return self._truncate_preview(f"{verdict.rstrip('。；; ')}。{value.lstrip('。；; ')}")
+        if value:
+            return self._truncate_preview(value)
+        if verdict:
+            return self._truncate_preview(verdict)
+        return ""
+
+    def _summary_sections(self, summary: str) -> dict[str, str]:
+        sections: dict[str, str] = {}
+        current = ""
+        buffer: list[str] = []
+
+        for raw_line in summary.splitlines():
+            line = raw_line.strip()
+            match = SECTION_HEADING_RE.match(line)
+            if match:
+                if current and buffer:
+                    sections[current] = self._clean_preview_text(" ".join(buffer))
+                current = match.group(1).strip()
+                buffer = []
+                continue
+            if current and line:
+                buffer.append(line)
+
+        if current and buffer:
+            sections[current] = self._clean_preview_text(" ".join(buffer))
+        return sections
+
+    def _clean_preview_text(self, text: str) -> str:
+        text = MARKDOWN_TOKEN_RE.sub(" ", text)
+        text = WHITESPACE_RE.sub(" ", text).strip()
+        return SECTION_LABEL_RE.sub("", text).strip()
+
+    def _truncate_preview(self, text: str, limit: int = 88) -> str:
+        if len(text) > limit:
+            return f"{text[:limit].rstrip('，。；;、 ')}..."
+        return text
 
     def _should_request_structured_output(self) -> bool:
         return "openai.com" in self.settings.openai_base_url

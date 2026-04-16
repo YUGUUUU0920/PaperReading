@@ -31,3 +31,9 @@ class SummarySections:
             "### 一句话判断\n"
             f"{self.verdict.strip()}"
         )
+
+
+@dataclass
+class SeedComment:
+    display_name: str
+    content: str

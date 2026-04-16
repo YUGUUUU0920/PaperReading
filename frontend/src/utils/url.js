@@ -16,6 +16,13 @@ export function buildSearchUrl(filters = {}) {
   return suffix ? `/explore?${suffix}` : "/explore";
 }
 
+export function buildLineageUrl({ theme = "" } = {}) {
+  const params = new URLSearchParams();
+  if (theme) params.set("theme", theme);
+  const suffix = params.toString();
+  return suffix ? `/lineage?${suffix}` : "/lineage";
+}
+
 export function buildPaperUrl(paperId, filters = {}) {
   const params = new URLSearchParams();
   params.set("id", String(paperId));

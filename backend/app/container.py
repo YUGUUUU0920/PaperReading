@@ -11,7 +11,9 @@ from backend.app.integrations.sources.neurips import NeurIPSSource
 from backend.app.jobs.refresh_scheduler import RefreshScheduler
 from backend.app.repositories.sqlite import SqliteRepository
 from backend.app.services.catalog_service import CatalogService
+from backend.app.services.community_service import CommunityService
 from backend.app.services.enrichment_service import EnrichmentService
+from backend.app.services.lineage_service import LineageService
 from backend.app.services.paper_service import PaperService
 from backend.app.services.summary_service import SummaryService
 from backend.app.services.sync_service import SyncService
@@ -29,6 +31,8 @@ class AppContainer:
     enrichment_service: EnrichmentService
     summary_service: SummaryService
     paper_service: PaperService
+    lineage_service: LineageService
+    community_service: CommunityService
     scheduler: RefreshScheduler
 
 
@@ -48,6 +52,8 @@ def build_container() -> AppContainer:
     enrichment_service = EnrichmentService(settings, http_client)
     summary_service = SummaryService(settings, http_client, tag_service)
     paper_service = PaperService(repository, sync_service, summary_service, enrichment_service, tag_service, sources)
+    lineage_service = LineageService(repository, tag_service, summary_service)
+    community_service = CommunityService(repository, settings, http_client, summary_service, tag_service)
     scheduler = RefreshScheduler(settings, sync_service)
     return AppContainer(
         settings=settings,
@@ -59,5 +65,7 @@ def build_container() -> AppContainer:
         enrichment_service=enrichment_service,
         summary_service=summary_service,
         paper_service=paper_service,
+        lineage_service=lineage_service,
+        community_service=community_service,
         scheduler=scheduler,
     )

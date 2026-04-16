@@ -3,6 +3,18 @@ import { escapeHtml } from "../utils/dom.js";
 import { buildPaperUrl } from "../utils/url.js";
 import { getTagTone } from "../utils/tags.js";
 
+function formatTimestamp(value) {
+  if (!value) return "";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
+  return new Intl.DateTimeFormat("zh-CN", {
+    month: "numeric",
+    day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  }).format(date);
+}
+
 function renderTags(tags = []) {
   if (!tags.length) return "";
   return `
@@ -114,6 +126,116 @@ function renderRelated(activePaper) {
   `;
 }
 
+function renderViewerPanel(state) {
+  const { viewer, viewerDraftName = "", updatingViewerName, postingComment } = state;
+  const displayName = viewer?.display_name || "访客";
+  return `
+    <div class="community-panel">
+      <div class="community-panel__head">
+        <div>
+          <h3>评论区</h3>
+          <p>留下你的判断、质疑或补充观点，也可以先看看开场观点再决定怎么读这篇论文。</p>
+        </div>
+        <div class="signal-row">
+          <span class="signal">${escapeHtml(viewer?.is_guest ? "访客身份" : "个人身份")}</span>
+          <span class="signal">${escapeHtml(displayName)}</span>
+        </div>
+      </div>
+      <div class="viewer-card">
+        <label class="field-grid--wide">
+          <span>你的昵称</span>
+          <input id="viewer-name-input" type="text" maxlength="20" value="${escapeHtml(viewerDraftName || displayName)}" placeholder="给自己起个名字" />
+        </label>
+        <div class="card-actions">
+          <button id="viewer-name-save" class="button button-secondary" type="button" ${updatingViewerName ? "disabled" : ""}>
+            ${updatingViewerName ? "保存中..." : "保存昵称"}
+          </button>
+          <span class="tag-empty">不注册也能评论，昵称会保存在当前浏览器里。</span>
+        </div>
+      </div>
+      <form id="comment-form" class="editor-form">
+        <label class="field-grid--wide">
+          <span>写下你的看法</span>
+          <textarea id="comment-input" placeholder="比如：这篇方法哪里最值得看？实验哪里还想追问？"></textarea>
+        </label>
+        <div class="card-actions">
+          <button class="button button-primary" type="submit" ${postingComment ? "disabled" : ""}>
+            ${postingComment ? "发表中..." : "发布评论"}
+          </button>
+        </div>
+      </form>
+    </div>
+  `;
+}
+
+function renderCommentItem(item) {
+  return `
+    <article class="comment-card ${item.is_seed ? "comment-card--seed" : ""}">
+      <div class="comment-card__head">
+        <div class="comment-card__identity">
+            <strong>${escapeHtml(item.display_name)}</strong>
+            <div class="paper-card__meta">
+            ${item.is_seed ? '<span class="pill pill--warm">开场观点</span>' : '<span class="pill">读者评论</span>'}
+            ${item.created_at ? `<span class="signal">${escapeHtml(formatTimestamp(item.created_at))}</span>` : ""}
+          </div>
+        </div>
+      </div>
+      <p class="comment-card__content">${escapeHtml(item.content)}</p>
+    </article>
+  `;
+}
+
+function renderComments(state) {
+  const { comments = [], loadingComments } = state;
+  if (loadingComments) {
+    return `
+      <div class="detail-block">
+        <h3>正在加载评论区...</h3>
+      </div>
+    `;
+  }
+  if (!comments.length) {
+    return `
+      <div class="empty-card">
+        <h3>还没有评论</h3>
+        <p>你可以先留下第一条看法，也可以等系统整理出更多开场观点。</p>
+      </div>
+    `;
+  }
+  const seedComments = comments.filter((item) => item.is_seed);
+  const userComments = comments.filter((item) => !item.is_seed);
+  return `
+    <div class="comment-stack">
+      ${
+        seedComments.length
+          ? `
+            <div class="detail-block">
+              <div class="detail-summary-head">
+                <h3>开场观点</h3>
+                <span class="signal">${seedComments.length} 条</span>
+              </div>
+              <div class="comment-list">
+                ${seedComments.map((item) => renderCommentItem(item)).join("")}
+              </div>
+            </div>
+          `
+          : ""
+      }
+      <div class="detail-block">
+        <div class="detail-summary-head">
+          <h3>读者评论</h3>
+          <span class="signal">${userComments.length} 条</span>
+        </div>
+        ${
+          userComments.length
+            ? `<div class="comment-list">${userComments.map((item) => renderCommentItem(item)).join("")}</div>`
+            : `<div class="empty-card"><p>还没有读者评论，你可以先留下第一条。</p></div>`
+        }
+      </div>
+    </div>
+  `;
+}
+
 export function renderPaperDetail(state) {
   const { activePaper, loadingDetail, loadingSummary, backUrl } = state;
   if (!activePaper) {
@@ -173,6 +295,11 @@ export function renderPaperDetail(state) {
       </div>
 
       ${renderRelated(activePaper)}
+
+      <div class="detail-block">
+        ${renderViewerPanel(state)}
+        ${renderComments(state)}
+      </div>
     </section>
   `;
 }

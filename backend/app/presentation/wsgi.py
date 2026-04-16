@@ -19,8 +19,13 @@ def app(environ, start_response):
     raw_path = f"{path}?{query_string}" if query_string else path
     body_length = int(environ.get("CONTENT_LENGTH") or "0")
     body = environ["wsgi.input"].read(body_length) if body_length > 0 else b""
+    headers = {
+        key[5:].replace("_", "-"): value
+        for key, value in environ.items()
+        if key.startswith("HTTP_")
+    }
 
-    response = _application.dispatch(method, raw_path, body)
+    response = _application.dispatch(method, raw_path, body, headers)
     start_response(
         f"{response.status.value} {response.status.phrase}",
         [

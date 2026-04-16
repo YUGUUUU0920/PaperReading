@@ -22,7 +22,8 @@ class ApiHandler(BaseHTTPRequestHandler):
     def _dispatch(self, method: str) -> None:
         length = int(self.headers.get("Content-Length", "0"))
         body = self.rfile.read(length) if length else b""
-        response = self.app.dispatch(method, self.path, body)
+        headers = {key: value for key, value in self.headers.items()}
+        response = self.app.dispatch(method, self.path, body, headers)
         self.send_response(response.status)
         self.send_header("Content-Type", response.content_type)
         for header, value in response.headers:

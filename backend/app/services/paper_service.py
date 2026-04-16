@@ -135,6 +135,126 @@ class PaperService:
             },
         }
 
+    def build_showcase(
+        self,
+        *,
+        ranked_limit: int = 6,
+        latest_limit: int = 8,
+        collection_limit: int = 6,
+        collection_sample_limit: int = 3,
+        maker_limit: int = 8,
+    ) -> dict:
+        papers = self.repository.list_matching_papers()
+        datasets = self.repository.list_tracked_datasets()
+        latest_year = max((paper.year for paper in papers), default=max((dataset.year for dataset in datasets), default=0))
+        conference_codes = sorted({paper.conference for paper in papers})
+        track_counts: dict[str, int] = {}
+        theme_buckets: dict[str, list[tuple[int, Paper]]] = {}
+        maker_stats: dict[str, dict] = {}
+        score_lookup: dict[int, int] = {}
+        tags_lookup: dict[int, list[str]] = {}
+        theme_counts: dict[str, int] = {}
+
+        for paper in papers:
+            if paper.id is None:
+                continue
+            tags = self.tag_service.build_tags(paper)
+            tags_lookup[paper.id] = tags
+            theme = self.tag_service.primary_theme(tags=tags)
+            theme_counts[theme] = theme_counts.get(theme, 0) + 1
+            score = self._launch_score(paper, tags=tags, latest_year=latest_year)
+            score_lookup[paper.id] = score
+            track_label = self._track_label(paper.track)
+            track_counts[track_label] = track_counts.get(track_label, 0) + 1
+            theme_buckets.setdefault(theme, []).append((score, paper))
+            self._accumulate_maker_stats(maker_stats, paper, score, theme)
+
+        ranked_pool = [paper for paper in papers if paper.year == latest_year] or papers
+        ranked_launches = sorted(
+            ranked_pool,
+            key=lambda paper: (
+                score_lookup.get(paper.id or -1, 0),
+                int((paper.metadata or {}).get("citation_count") or 0),
+                paper.year,
+                paper.id or 0,
+            ),
+            reverse=True,
+        )[:ranked_limit]
+        latest_launches = sorted(
+            papers,
+            key=lambda paper: (
+                paper.year,
+                paper.id or 0,
+                int((paper.metadata or {}).get("citation_count") or 0),
+            ),
+            reverse=True,
+        )[:latest_limit]
+        collections = self._build_collections(
+            theme_buckets,
+            score_lookup=score_lookup,
+            collection_limit=collection_limit,
+            sample_limit=collection_sample_limit,
+        )
+        makers = self._build_makers(maker_stats, maker_limit=maker_limit)
+        selected_ids = {
+            paper.id
+            for paper in ranked_launches + latest_launches
+            if paper.id is not None
+        }
+        for collection in collections:
+            for item in collection["items"]:
+                selected_ids.add(item.id)
+        saved_lookup = self.repository.get_saved_entries(list(selected_ids))
+
+        return {
+            "overview": {
+                "total_papers": len(papers),
+                "conference_count": len(conference_codes),
+                "latest_year": latest_year,
+                "theme_count": len(theme_counts),
+                "favorite_count": self.repository.count_saved("favorite"),
+                "reading_count": self.repository.count_saved("reading"),
+            },
+            "ranked_launches": [
+                self._serialize_showcase_paper(
+                    paper,
+                    launch_score=score_lookup.get(paper.id or -1, 0),
+                    tags=tags_lookup.get(paper.id or -1),
+                    saved_entries=saved_lookup.get(paper.id or -1, {}),
+                )
+                for paper in ranked_launches
+            ],
+            "latest_launches": [
+                self._serialize_showcase_paper(
+                    paper,
+                    launch_score=score_lookup.get(paper.id or -1, 0),
+                    tags=tags_lookup.get(paper.id or -1),
+                    saved_entries=saved_lookup.get(paper.id or -1, {}),
+                )
+                for paper in latest_launches
+            ],
+            "collections": [
+                {
+                    **collection,
+                    "items": [
+                        self._serialize_showcase_paper(
+                            paper,
+                            launch_score=score_lookup.get(paper.id or -1, 0),
+                            tags=tags_lookup.get(paper.id or -1),
+                            saved_entries=saved_lookup.get(paper.id or -1, {}),
+                        )
+                        for paper in collection["items"]
+                    ],
+                }
+                for collection in collections
+            ],
+            "makers": makers,
+            "tracks": [
+                {"label": label, "count": count}
+                for label, count in sorted(track_counts.items(), key=lambda item: (-item[1], item[0]))[:6]
+            ],
+        }
+
     def set_saved_state(self, paper_id: int, list_type: str, enabled: bool) -> dict:
         paper = self.repository.get_paper(paper_id)
         if not paper:
@@ -245,6 +365,117 @@ class PaperService:
     def _needs_signal_refresh(self, paper: Paper) -> bool:
         metadata = paper.metadata or {}
         return not metadata.get("signals_refreshed_at")
+
+    def _launch_score(self, paper: Paper, *, tags: list[str], latest_year: int) -> int:
+        metadata = paper.metadata or {}
+        citations = int(metadata.get("citation_count") or 0)
+        score = min(citations, 300) * 3
+        if metadata.get("top_10_percent_cited"):
+            score += 90
+        if metadata.get("code_url"):
+            score += 34
+        if metadata.get("open_access"):
+            score += 18
+        score += min(len(metadata.get("resource_links", []) or []), 3) * 8
+        if paper.summary.strip():
+            score += 20
+        if paper.year == latest_year:
+            score += 42
+        elif paper.year + 1 == latest_year:
+            score += 14
+        if "口头报告" in tags:
+            score += 28
+        if "聚光论文" in tags:
+            score += 22
+        if "新晋热门" in tags:
+            score += 16
+        return score
+
+    def _serialize_showcase_paper(
+        self,
+        paper: Paper,
+        *,
+        launch_score: int,
+        tags: list[str] | None = None,
+        saved_entries: dict[str, dict] | None = None,
+    ) -> dict:
+        payload = self._serialize_paper(paper, saved_entries=saved_entries)
+        payload["launch_score"] = launch_score
+        if tags is not None:
+            payload["tags"] = tags
+            payload["primary_theme"] = self.tag_service.primary_theme(tags=tags)
+        return payload
+
+    def _accumulate_maker_stats(self, target: dict[str, dict], paper: Paper, score: int, theme: str) -> None:
+        authors = [author.strip() for author in paper.authors if author.strip()]
+        if not authors:
+            return
+        weight = max(1, min(len(authors), 5))
+        for author in authors:
+            current = target.setdefault(
+                author,
+                {
+                    "name": author,
+                    "paper_count": 0,
+                    "heat_score": 0,
+                    "themes": {},
+                    "conferences": set(),
+                },
+            )
+            current["paper_count"] += 1
+            current["heat_score"] += max(1, round(score / weight))
+            current["conferences"].add(paper.conference.upper())
+            current["themes"][theme] = current["themes"].get(theme, 0) + 1
+
+    def _build_collections(
+        self,
+        theme_buckets: dict[str, list[tuple[int, Paper]]],
+        *,
+        score_lookup: dict[int, int],
+        collection_limit: int,
+        sample_limit: int,
+    ) -> list[dict]:
+        collections: list[dict] = []
+        for theme, items in theme_buckets.items():
+            sorted_items = sorted(
+                items,
+                key=lambda item: (
+                    item[0],
+                    int((item[1].metadata or {}).get("citation_count") or 0),
+                    item[1].year,
+                    item[1].id or 0,
+                ),
+                reverse=True,
+            )
+            if len(sorted_items) < 2:
+                continue
+            collections.append(
+                {
+                    "theme": theme,
+                    "count": len(sorted_items),
+                    "launch_score": score_lookup.get(sorted_items[0][1].id or -1, 0),
+                    "items": [paper for _, paper in sorted_items[:sample_limit]],
+                }
+            )
+        return sorted(collections, key=lambda item: (-item["count"], -item["launch_score"], item["theme"]))[:collection_limit]
+
+    def _build_makers(self, maker_stats: dict[str, dict], *, maker_limit: int) -> list[dict]:
+        makers: list[dict] = []
+        for item in maker_stats.values():
+            theme_items = sorted(item["themes"].items(), key=lambda pair: (-pair[1], pair[0]))
+            makers.append(
+                {
+                    "name": item["name"],
+                    "paper_count": item["paper_count"],
+                    "heat_score": item["heat_score"],
+                    "conference_count": len(item["conferences"]),
+                    "top_theme": theme_items[0][0] if theme_items else "人工智能",
+                }
+            )
+        return sorted(
+            makers,
+            key=lambda item: (-item["paper_count"], -item["heat_score"], item["name"].lower()),
+        )[:maker_limit]
 
     def _filter_papers(self, papers: list[Paper], *, tags: list[str]) -> list[Paper]:
         if not tags:
