@@ -46,6 +46,14 @@ class HttpClient:
         except ValueError as exc:
             raise FetchError(f"Invalid JSON response from {url}: {exc}") from exc
 
+    def post_form(self, url: str, payload: dict[str, Any], headers: dict[str, str] | None = None) -> dict[str, Any]:
+        merged_headers = dict(headers or {})
+        response = self._request("POST", url, data=payload, headers=merged_headers)
+        try:
+            return response.json()
+        except ValueError as exc:
+            raise FetchError(f"Invalid JSON response from {url}: {exc}") from exc
+
     def _request(self, method: str, url: str, **kwargs: Any) -> httpx.Response:
         attempts = self._network_attempts()
         failures: list[str] = []

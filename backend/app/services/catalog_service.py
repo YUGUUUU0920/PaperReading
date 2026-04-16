@@ -36,4 +36,10 @@ class CatalogService:
                 "sort": "default",
             },
             "summaryEnabled": bool(self.settings.openai_api_key),
+            "auth": {
+                "githubEnabled": bool(self.settings.github_oauth_client_id and self.settings.github_oauth_client_secret),
+                "providers": [{"code": "github", "label": "GitHub"}]
+                if self.settings.github_oauth_client_id and self.settings.github_oauth_client_secret
+                else [],
+            },
         }

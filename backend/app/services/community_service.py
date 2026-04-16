@@ -60,10 +60,10 @@ class CommunityService:
             raise KeyError(f"Paper {paper_id} not found")
         viewer = self._ensure_viewer_profile(viewer_id=viewer_id, display_name=display_name)
         self._ensure_seed_comments(paper)
-        comments = self.repository.list_comments(paper_id)
+        comments = self.repository.list_comments(paper_id, viewer_id=viewer.id)
         return {
             "viewer": viewer.to_dict(),
-            "items": [item.to_dict() for item in comments],
+            "items": self._comment_tree(comments),
             "count": len(comments),
             "seed_count": len([item for item in comments if item.source == "seed"]),
         }
@@ -73,6 +73,7 @@ class CommunityService:
         paper_id: int,
         *,
         content: str,
+        parent_comment_id: int | None = None,
         viewer_id: str = "",
         display_name: str = "",
     ) -> dict:
@@ -85,16 +86,42 @@ class CommunityService:
             raise ValueError("评论至少写 4 个字")
         if len(normalized_content) > 520:
             raise ValueError("评论请控制在 520 个字以内")
+        if parent_comment_id is not None:
+            parent = self.repository.get_comment(parent_comment_id, viewer_id=viewer.id)
+            if not parent or parent.paper_id != paper_id:
+                raise ValueError("回复的评论不存在")
         comment = self.repository.add_comment(
             paper_id=paper_id,
             profile_id=viewer.id,
             source="user",
             content=normalized_content,
+            parent_comment_id=parent_comment_id,
         )
         return {
             "viewer": viewer.to_dict(),
             "item": comment.to_dict(),
             "count": self.repository.count_comments(paper_id),
+        }
+
+    def toggle_like(
+        self,
+        comment_id: int,
+        *,
+        enabled: bool,
+        viewer_id: str = "",
+        display_name: str = "",
+    ) -> dict:
+        viewer = self._ensure_viewer_profile(viewer_id=viewer_id, display_name=display_name)
+        comment = self.repository.get_comment(comment_id, viewer_id=viewer.id)
+        if not comment:
+            raise KeyError(f"Comment {comment_id} not found")
+        self.repository.set_comment_like(comment_id, viewer.id, enabled)
+        refreshed = self.repository.get_comment(comment_id, viewer_id=viewer.id)
+        if not refreshed:
+            raise KeyError(f"Comment {comment_id} not found after like update")
+        return {
+            "viewer": viewer.to_dict(),
+            "item": refreshed.to_dict(),
         }
 
     def _ensure_viewer_profile(self, *, viewer_id: str = "", display_name: str = "") -> ViewerProfile:
@@ -249,3 +276,31 @@ class CommunityService:
 
     def _generate_viewer_id(self) -> str:
         return f"viewer-{secrets.token_hex(4)}"
+
+    def _comment_tree(self, comments: list) -> list[dict]:
+        nodes: dict[int, dict] = {}
+        roots: list[dict] = []
+        for comment in comments:
+            payload = comment.to_dict()
+            payload["replies"] = []
+            nodes[int(comment.id or 0)] = payload
+        for comment in comments:
+            payload = nodes[int(comment.id or 0)]
+            if comment.parent_comment_id and comment.parent_comment_id in nodes:
+                nodes[comment.parent_comment_id]["replies"].append(payload)
+            else:
+                roots.append(payload)
+        self._sort_comment_nodes(roots, is_root=True)
+        return roots
+
+    def _sort_comment_nodes(self, items: list[dict], *, is_root: bool) -> None:
+        items.sort(key=lambda item: self._comment_sort_key(item, is_root=is_root))
+        for item in items:
+            replies = item.get("replies") or []
+            if replies:
+                self._sort_comment_nodes(replies, is_root=False)
+
+    def _comment_sort_key(self, item: dict, *, is_root: bool) -> tuple:
+        if is_root and item.get("is_seed"):
+            return (0, int(item.get("sort_order", 0)), str(item.get("created_at", "")), int(item.get("id", 0)))
+        return (1 if is_root else 0, str(item.get("created_at", "")), int(item.get("id", 0)))

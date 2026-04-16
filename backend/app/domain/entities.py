@@ -53,6 +53,9 @@ class ViewerProfile:
     id: str
     display_name: str
     profile_type: str = "guest"
+    auth_provider: str = ""
+    external_auth_id: str = ""
+    avatar_url: str = ""
     created_at: str = ""
     updated_at: str = ""
 
@@ -60,6 +63,7 @@ class ViewerProfile:
         payload = asdict(self)
         payload["is_guest"] = self.profile_type == "guest"
         payload["is_seed"] = self.profile_type == "seed"
+        payload["is_oauth"] = self.profile_type == "oauth"
         return payload
 
 
@@ -72,6 +76,11 @@ class PaperComment:
     profile_type: str
     source: str
     content: str
+    auth_provider: str = ""
+    avatar_url: str = ""
+    parent_comment_id: int | None = None
+    like_count: int = 0
+    liked_by_viewer: bool = False
     created_at: str = ""
     updated_at: str = ""
     sort_order: int = 0

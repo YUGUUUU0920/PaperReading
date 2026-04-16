@@ -70,6 +70,23 @@ function renderSignals(activePaper) {
   `;
 }
 
+function buildGithubLoginHref() {
+  const url = new URL(window.location.href);
+  url.searchParams.delete("auth_session");
+  url.searchParams.delete("auth_error");
+  const query = url.searchParams.toString();
+  const returnPath = `${url.pathname}${query ? `?${query}` : ""}`;
+  return `/api/auth/github/start?return_path=${encodeURIComponent(returnPath || "/paper")}`;
+}
+
+function renderProfileAvatar(name = "", avatarUrl = "", variant = "viewer") {
+  const initial = escapeHtml((name || "读").slice(0, 1).toUpperCase());
+  if (avatarUrl) {
+    return `<span class="profile-avatar profile-avatar--${variant}"><img src="${escapeHtml(avatarUrl)}" alt="${escapeHtml(name || "用户头像")}" /></span>`;
+  }
+  return `<span class="profile-avatar profile-avatar--${variant}">${initial}</span>`;
+}
+
 function renderResources(activePaper) {
   const links = [...(activePaper.resource_links || [])];
   if (activePaper.code_url && !links.some((item) => item.url === activePaper.code_url)) {
@@ -127,8 +144,10 @@ function renderRelated(activePaper) {
 }
 
 function renderViewerPanel(state) {
-  const { viewer, viewerDraftName = "", updatingViewerName, postingComment } = state;
+  const { viewer, viewerDraftName = "", updatingViewerName, postingComment, bootstrap = {} } = state;
   const displayName = viewer?.display_name || "访客";
+  const githubEnabled = Boolean(bootstrap?.auth?.githubEnabled);
+  const isOauth = Boolean(viewer?.is_oauth);
   return `
     <div class="community-panel">
       <div class="community-panel__head">
@@ -137,11 +156,21 @@ function renderViewerPanel(state) {
           <p>留下你的判断、质疑或补充观点，也可以先看看开场观点再决定怎么读这篇论文。</p>
         </div>
         <div class="signal-row">
-          <span class="signal">${escapeHtml(viewer?.is_guest ? "访客身份" : "个人身份")}</span>
+          <span class="signal">${escapeHtml(isOauth ? "GitHub 身份" : viewer?.is_guest ? "访客身份" : "个人身份")}</span>
           <span class="signal">${escapeHtml(displayName)}</span>
         </div>
       </div>
       <div class="viewer-card">
+        <div class="viewer-card__header">
+          <div class="viewer-card__identity">
+            ${renderProfileAvatar(displayName, viewer?.avatar_url || "", "viewer")}
+            <div>
+              <strong>${escapeHtml(displayName)}</strong>
+              <p>${escapeHtml(isOauth ? "你现在的评论会跟随 GitHub 身份保留。" : "不登录也能参与讨论，登录后更适合同步你的身份。")}</p>
+            </div>
+          </div>
+          ${githubEnabled && !isOauth ? `<a class="button button-secondary" href="${buildGithubLoginHref()}">使用 GitHub 登录</a>` : ""}
+        </div>
         <label class="field-grid--wide">
           <span>你的昵称</span>
           <input id="viewer-name-input" type="text" maxlength="20" value="${escapeHtml(viewerDraftName || displayName)}" placeholder="给自己起个名字" />
@@ -168,21 +197,84 @@ function renderViewerPanel(state) {
   `;
 }
 
-function renderCommentItem(item) {
+function renderIdentityMeta(item) {
+  const badges = [
+    item.is_seed ? '<span class="pill pill--warm">开场观点</span>' : '<span class="pill">读者评论</span>',
+  ];
+  if (item.auth_provider === "github") {
+    badges.push('<span class="pill">GitHub</span>');
+  }
+  if (item.created_at) {
+    badges.push(`<span class="signal">${escapeHtml(formatTimestamp(item.created_at))}</span>`);
+  }
+  return badges.join("");
+}
+
+function renderReplyForm(item, state) {
+  if (state.replyTargetId !== item.id) return "";
   return `
-    <article class="comment-card ${item.is_seed ? "comment-card--seed" : ""}">
+    <form class="editor-form editor-form--reply" data-reply-form="${item.id}">
+      <label class="field-grid--wide">
+        <span>回复 ${escapeHtml(item.display_name)}</span>
+        <textarea data-reply-input="1" placeholder="写下你对这条评论的回应...">${escapeHtml(state.replyDraft || "")}</textarea>
+      </label>
+      <div class="card-actions">
+        <button class="button button-primary" type="submit" ${state.postingReply ? "disabled" : ""}>
+          ${state.postingReply ? "发送中..." : "发送回复"}
+        </button>
+        <button class="button button-ghost" type="button" data-reply-to="${item.id}">
+          收起
+        </button>
+      </div>
+    </form>
+  `;
+}
+
+function renderCommentItem(item, state, depth = 0) {
+  const likePending = state.likingCommentId === item.id;
+  const liked = Boolean(item.liked_by_viewer);
+  const replies = item.replies || [];
+  return `
+    <article class="comment-card ${item.is_seed ? "comment-card--seed" : ""}" data-depth="${depth}">
       <div class="comment-card__head">
         <div class="comment-card__identity">
-            <strong>${escapeHtml(item.display_name)}</strong>
-            <div class="paper-card__meta">
-            ${item.is_seed ? '<span class="pill pill--warm">开场观点</span>' : '<span class="pill">读者评论</span>'}
-            ${item.created_at ? `<span class="signal">${escapeHtml(formatTimestamp(item.created_at))}</span>` : ""}
+          <div class="comment-card__identity-main">
+            ${renderProfileAvatar(item.display_name, item.avatar_url || "", "comment")}
+            <div>
+              <strong>${escapeHtml(item.display_name)}</strong>
+              <div class="paper-card__meta">
+                ${renderIdentityMeta(item)}
+              </div>
+            </div>
           </div>
         </div>
       </div>
       <p class="comment-card__content">${escapeHtml(item.content)}</p>
+      <div class="comment-card__actions">
+        <button class="button button-chip ${liked ? "active" : ""}" type="button" data-like-toggle="${item.id}:${liked ? "0" : "1"}" ${likePending ? "disabled" : ""}>
+          ${likePending ? "处理中..." : liked ? `已赞同 ${item.like_count || 0}` : `赞同 ${item.like_count || 0}`}
+        </button>
+        <button class="button button-ghost" type="button" data-reply-to="${item.id}">
+          ${state.replyTargetId === item.id ? "收起回复" : "回复"}
+        </button>
+      </div>
+      ${renderReplyForm(item, state)}
+      ${
+        replies.length
+          ? `<div class="comment-replies">${replies.map((reply) => renderCommentItem(reply, state, depth + 1)).join("")}</div>`
+          : ""
+      }
     </article>
   `;
+}
+
+function countComments(nodes, predicate) {
+  let total = 0;
+  for (const node of nodes || []) {
+    if (!predicate || predicate(node)) total += 1;
+    total += countComments(node.replies || [], predicate);
+  }
+  return total;
 }
 
 function renderComments(state) {
@@ -204,6 +296,7 @@ function renderComments(state) {
   }
   const seedComments = comments.filter((item) => item.is_seed);
   const userComments = comments.filter((item) => !item.is_seed);
+  const userCommentCount = countComments(userComments);
   return `
     <div class="comment-stack">
       ${
@@ -215,7 +308,7 @@ function renderComments(state) {
                 <span class="signal">${seedComments.length} 条</span>
               </div>
               <div class="comment-list">
-                ${seedComments.map((item) => renderCommentItem(item)).join("")}
+                ${seedComments.map((item) => renderCommentItem(item, state)).join("")}
               </div>
             </div>
           `
@@ -223,12 +316,12 @@ function renderComments(state) {
       }
       <div class="detail-block">
         <div class="detail-summary-head">
-          <h3>读者评论</h3>
-          <span class="signal">${userComments.length} 条</span>
+          <h3>读者讨论</h3>
+          <span class="signal">${userCommentCount} 条</span>
         </div>
         ${
           userComments.length
-            ? `<div class="comment-list">${userComments.map((item) => renderCommentItem(item)).join("")}</div>`
+            ? `<div class="comment-list">${userComments.map((item) => renderCommentItem(item, state)).join("")}</div>`
             : `<div class="empty-card"><p>还没有读者评论，你可以先留下第一条。</p></div>`
         }
       </div>

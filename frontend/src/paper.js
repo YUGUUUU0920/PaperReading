@@ -20,7 +20,11 @@ const store = createStore({
   loadingSummary: false,
   loadingComments: false,
   postingComment: false,
+  postingReply: false,
   updatingViewerName: false,
+  replyTargetId: null,
+  replyDraft: "",
+  likingCommentId: null,
   message: "正在准备论文详情页...",
 });
 
@@ -42,6 +46,8 @@ function render() {
 }
 
 function bindEvents() {
+  const currentPaperId = store.getState().activePaper?.id;
+
   const summarizeButton = qs("#summarize-paper-button");
   if (summarizeButton) {
     summarizeButton.addEventListener("click", async () => {
@@ -104,13 +110,11 @@ function bindEvents() {
       render();
       try {
         const data = await apiClient.updateViewer({ displayName });
-        const comments = store
-          .getState()
-          .comments.map((item) => (item.profile_id === data.viewer.id ? { ...item, display_name: data.viewer.display_name } : item));
+        const commentsData = currentPaperId ? await apiClient.getComments(currentPaperId) : null;
         store.setState({
           viewer: data.viewer,
           viewerDraftName: data.viewer.display_name,
-          comments,
+          comments: commentsData?.items || store.getState().comments,
           message: "昵称已保存。",
         });
       } catch (error) {
@@ -134,11 +138,12 @@ function bindEvents() {
       store.setState({ postingComment: true, message: "正在发布评论..." });
       render();
       try {
-        const data = await apiClient.addComment(paper.id, { content });
+        await apiClient.addComment(paper.id, { content });
+        const commentsData = await apiClient.getComments(paper.id);
         store.setState({
-          viewer: data.viewer,
-          viewerDraftName: data.viewer.display_name,
-          comments: [...store.getState().comments, data.item],
+          viewer: commentsData.viewer,
+          viewerDraftName: commentsData.viewer.display_name,
+          comments: commentsData.items || [],
           message: "评论已发布。",
         });
         submitted = true;
@@ -154,6 +159,89 @@ function bindEvents() {
       }
     });
   }
+
+  document.querySelectorAll("[data-reply-to]").forEach((button) => {
+    button.addEventListener("click", () => {
+      const targetId = Number(button.getAttribute("data-reply-to") || 0) || null;
+      const currentTarget = store.getState().replyTargetId;
+      store.setState({
+        replyTargetId: currentTarget === targetId ? null : targetId,
+        replyDraft: currentTarget === targetId ? "" : store.getState().replyDraft,
+        message: currentTarget === targetId ? "已收起回复框。" : "写下你的回复吧。",
+      });
+      render();
+    });
+  });
+
+  document.querySelectorAll("[data-reply-form]").forEach((form) => {
+    form.addEventListener("submit", async (event) => {
+      event.preventDefault();
+      const paper = store.getState().activePaper;
+      const replyTargetId = Number(form.getAttribute("data-reply-form") || 0) || null;
+      const content = String(store.getState().replyDraft || "").trim();
+      if (!paper || !replyTargetId) return;
+      store.setState({ postingReply: true, message: "正在发送回复..." });
+      render();
+      try {
+        await apiClient.addComment(paper.id, {
+          content,
+          parentCommentId: replyTargetId,
+        });
+        const commentsData = await apiClient.getComments(paper.id);
+        store.setState({
+          viewer: commentsData.viewer,
+          viewerDraftName: commentsData.viewer.display_name,
+          comments: commentsData.items || [],
+          replyTargetId: null,
+          replyDraft: "",
+          message: "回复已发布。",
+        });
+      } catch (error) {
+        store.setState({ message: error.message });
+      } finally {
+        store.setState({ postingReply: false });
+        render();
+      }
+    });
+  });
+
+  document.querySelectorAll("[data-reply-input]").forEach((input) => {
+    input.addEventListener("input", (event) => {
+      const target = event.target;
+      store.setState({ replyDraft: String(target?.value || "") });
+    });
+  });
+
+  document.querySelectorAll("[data-like-toggle]").forEach((button) => {
+    button.addEventListener("click", async () => {
+      const raw = String(button.getAttribute("data-like-toggle") || "");
+      const [commentIdText, enabledText] = raw.split(":");
+      const commentId = Number(commentIdText || 0);
+      const enabled = enabledText === "1";
+      const paper = store.getState().activePaper;
+      if (!commentId || !paper) return;
+      store.setState({
+        likingCommentId: commentId,
+        message: enabled ? "正在点赞..." : "正在取消点赞...",
+      });
+      render();
+      try {
+        await apiClient.toggleCommentLike(commentId, { enabled });
+        const commentsData = await apiClient.getComments(paper.id);
+        store.setState({
+          viewer: commentsData.viewer,
+          viewerDraftName: commentsData.viewer.display_name,
+          comments: commentsData.items || [],
+          message: enabled ? "已点赞这条评论。" : "已取消点赞。",
+        });
+      } catch (error) {
+        store.setState({ message: error.message });
+      } finally {
+        store.setState({ likingCommentId: null });
+        render();
+      }
+    });
+  });
 
   const viewerInput = qs("#viewer-name-input");
   if (viewerInput) {
@@ -192,12 +280,13 @@ async function bootstrap() {
 
   try {
     const [paperData, commentsData] = await Promise.all([apiClient.getPaper(id), apiClient.getComments(id)]);
+    const authNotice = apiClient.consumeAuthNotice();
     store.setState({
       activePaper: paperData.item,
       viewer: commentsData.viewer,
       viewerDraftName: commentsData.viewer?.display_name || "",
       comments: commentsData.items || [],
-      message: "论文详情已加载。",
+      message: authNotice || "论文详情已加载。",
     });
   } catch (error) {
     store.setState({ message: error.message });

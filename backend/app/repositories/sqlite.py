@@ -76,6 +76,9 @@ class SqliteRepository:
                     id TEXT PRIMARY KEY,
                     display_name TEXT NOT NULL,
                     profile_type TEXT NOT NULL DEFAULT 'guest',
+                    auth_provider TEXT NOT NULL DEFAULT '',
+                    external_auth_id TEXT NOT NULL DEFAULT '',
+                    avatar_url TEXT NOT NULL DEFAULT '',
                     created_at TEXT NOT NULL DEFAULT '',
                     updated_at TEXT NOT NULL DEFAULT ''
                 );
@@ -86,6 +89,7 @@ class SqliteRepository:
                     profile_id TEXT NOT NULL,
                     source TEXT NOT NULL DEFAULT 'user',
                     content TEXT NOT NULL,
+                    parent_comment_id INTEGER,
                     created_at TEXT NOT NULL DEFAULT '',
                     updated_at TEXT NOT NULL DEFAULT '',
                     sort_order INTEGER NOT NULL DEFAULT 0
@@ -93,9 +97,32 @@ class SqliteRepository:
 
                 CREATE INDEX IF NOT EXISTS idx_comments_paper
                 ON comments(paper_id, sort_order ASC, created_at ASC);
+
+                CREATE TABLE IF NOT EXISTS comment_likes (
+                    comment_id INTEGER NOT NULL,
+                    profile_id TEXT NOT NULL,
+                    created_at TEXT NOT NULL DEFAULT '',
+                    PRIMARY KEY (comment_id, profile_id)
+                );
+
+                CREATE TABLE IF NOT EXISTS oauth_states (
+                    state TEXT PRIMARY KEY,
+                    return_path TEXT NOT NULL DEFAULT '/',
+                    created_at TEXT NOT NULL DEFAULT ''
+                );
+
+                CREATE TABLE IF NOT EXISTS auth_sessions (
+                    token TEXT PRIMARY KEY,
+                    profile_id TEXT NOT NULL,
+                    return_path TEXT NOT NULL DEFAULT '/',
+                    created_at TEXT NOT NULL DEFAULT '',
+                    expires_at TEXT NOT NULL DEFAULT ''
+                );
                 """
             )
             self._ensure_saved_entry_columns(connection)
+            self._ensure_profile_columns(connection)
+            self._ensure_comment_columns(connection)
 
     def upsert_papers(self, papers: list[Paper]) -> None:
         if not papers:
@@ -500,21 +527,45 @@ class SqliteRepository:
             return None
         return self._row_to_profile(row)
 
+    def get_profile_by_auth(self, auth_provider: str, external_auth_id: str) -> ViewerProfile | None:
+        if not auth_provider.strip() or not external_auth_id.strip():
+            return None
+        with self._connect() as connection:
+            row = connection.execute(
+                """
+                SELECT *
+                FROM profiles
+                WHERE auth_provider = ? AND external_auth_id = ?
+                """,
+                (auth_provider.strip(), external_auth_id.strip()),
+            ).fetchone()
+        if not row:
+            return None
+        return self._row_to_profile(row)
+
     def upsert_profile(self, profile: ViewerProfile) -> None:
         with self._connect() as connection:
             connection.execute(
                 """
-                INSERT INTO profiles (id, display_name, profile_type, created_at, updated_at)
-                VALUES (?, ?, ?, ?, ?)
+                INSERT INTO profiles (
+                    id, display_name, profile_type, auth_provider, avatar_url, external_auth_id, created_at, updated_at
+                )
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
                 ON CONFLICT(id) DO UPDATE SET
                     display_name = excluded.display_name,
                     profile_type = excluded.profile_type,
+                    auth_provider = excluded.auth_provider,
+                    avatar_url = excluded.avatar_url,
+                    external_auth_id = excluded.external_auth_id,
                     updated_at = excluded.updated_at
                 """,
                 (
                     profile.id,
                     profile.display_name,
                     profile.profile_type,
+                    profile.auth_provider,
+                    profile.avatar_url,
+                    profile.external_auth_id,
                     profile.created_at,
                     profile.updated_at,
                 ),
@@ -531,22 +582,113 @@ class SqliteRepository:
                 (display_name, utc_now_iso(), profile_id),
             )
 
-    def list_comments(self, paper_id: int) -> list[PaperComment]:
+    def create_oauth_state(self, state: str, return_path: str) -> None:
         with self._connect() as connection:
-            rows = connection.execute(
+            connection.execute(
                 """
-                SELECT c.*, p.display_name, p.profile_type
+                INSERT OR REPLACE INTO oauth_states (state, return_path, created_at)
+                VALUES (?, ?, ?)
+                """,
+                (state, return_path, utc_now_iso()),
+            )
+
+    def consume_oauth_state(self, state: str) -> str | None:
+        with self._connect() as connection:
+            row = connection.execute(
+                "SELECT return_path FROM oauth_states WHERE state = ?",
+                (state,),
+            ).fetchone()
+            connection.execute("DELETE FROM oauth_states WHERE state = ?", (state,))
+        return str(row["return_path"]) if row else None
+
+    def create_auth_session(self, token: str, profile_id: str, return_path: str, expires_at: str) -> None:
+        with self._connect() as connection:
+            connection.execute(
+                """
+                INSERT OR REPLACE INTO auth_sessions (token, profile_id, return_path, created_at, expires_at)
+                VALUES (?, ?, ?, ?, ?)
+                """,
+                (token, profile_id, return_path, utc_now_iso(), expires_at),
+            )
+
+    def consume_auth_session(self, token: str) -> tuple[str, str] | None:
+        with self._connect() as connection:
+            row = connection.execute(
+                "SELECT profile_id, return_path, expires_at FROM auth_sessions WHERE token = ?",
+                (token,),
+            ).fetchone()
+            connection.execute("DELETE FROM auth_sessions WHERE token = ?", (token,))
+        if not row:
+            return None
+        expires_at = str(row["expires_at"] or "")
+        if expires_at and expires_at < utc_now_iso():
+            return None
+        return str(row["profile_id"]), str(row["return_path"])
+
+    def get_comment(self, comment_id: int, *, viewer_id: str = "") -> PaperComment | None:
+        with self._connect() as connection:
+            row = connection.execute(
+                f"""
+                SELECT c.*, p.display_name, p.profile_type, p.avatar_url,
+                       p.auth_provider,
+                       COALESCE(likes.like_count, 0) AS like_count,
+                       CASE WHEN viewer.profile_id IS NULL THEN 0 ELSE 1 END AS liked_by_viewer
                 FROM comments AS c
                 JOIN profiles AS p
                     ON p.id = c.profile_id
+                LEFT JOIN (
+                    SELECT comment_id, COUNT(*) AS like_count
+                    FROM comment_likes
+                    GROUP BY comment_id
+                ) AS likes
+                    ON likes.comment_id = c.id
+                LEFT JOIN (
+                    SELECT comment_id, profile_id
+                    FROM comment_likes
+                    WHERE profile_id = ?
+                ) AS viewer
+                    ON viewer.comment_id = c.id
+                WHERE c.id = ?
+                """,
+                (viewer_id.strip(), comment_id),
+            ).fetchone()
+        if not row:
+            return None
+        return self._row_to_comment(row)
+
+    def list_comments(self, paper_id: int, *, viewer_id: str = "") -> list[PaperComment]:
+        with self._connect() as connection:
+            rows = connection.execute(
+                """
+                SELECT c.*, p.display_name, p.profile_type, p.avatar_url,
+                       p.auth_provider,
+                       COALESCE(likes.like_count, 0) AS like_count,
+                       CASE WHEN viewer.profile_id IS NULL THEN 0 ELSE 1 END AS liked_by_viewer
+                FROM comments AS c
+                JOIN profiles AS p
+                    ON p.id = c.profile_id
+                LEFT JOIN (
+                    SELECT comment_id, COUNT(*) AS like_count
+                    FROM comment_likes
+                    GROUP BY comment_id
+                ) AS likes
+                    ON likes.comment_id = c.id
+                LEFT JOIN (
+                    SELECT comment_id, profile_id
+                    FROM comment_likes
+                    WHERE profile_id = ?
+                ) AS viewer
+                    ON viewer.comment_id = c.id
                 WHERE c.paper_id = ?
                 ORDER BY
                     CASE WHEN c.source = 'seed' THEN 0 ELSE 1 END ASC,
+                    COALESCE(c.parent_comment_id, c.id) ASC,
+                    CASE WHEN c.parent_comment_id IS NULL THEN 0 ELSE 1 END ASC,
                     c.sort_order ASC,
                     c.created_at ASC,
                     c.id ASC
                 """,
-                (paper_id,),
+                (viewer_id.strip(), paper_id),
             ).fetchall()
         return [self._row_to_comment(row) for row in rows]
 
@@ -573,6 +715,7 @@ class SqliteRepository:
         profile_id: str,
         source: str,
         content: str,
+        parent_comment_id: int | None = None,
         sort_order: int = 0,
     ) -> PaperComment:
         timestamp = utc_now_iso()
@@ -580,14 +723,15 @@ class SqliteRepository:
             cursor = connection.execute(
                 """
                 INSERT INTO comments (
-                    paper_id, profile_id, source, content, created_at, updated_at, sort_order
-                ) VALUES (?, ?, ?, ?, ?, ?, ?)
+                    paper_id, profile_id, source, content, parent_comment_id, created_at, updated_at, sort_order
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                 (
                     paper_id,
                     profile_id,
                     source,
                     content,
+                    parent_comment_id,
                     timestamp,
                     timestamp,
                     sort_order,
@@ -595,10 +739,19 @@ class SqliteRepository:
             )
             row = connection.execute(
                 """
-                SELECT c.*, p.display_name, p.profile_type
+                SELECT c.*, p.display_name, p.profile_type, p.avatar_url,
+                       p.auth_provider,
+                       COALESCE(likes.like_count, 0) AS like_count,
+                       0 AS liked_by_viewer
                 FROM comments AS c
                 JOIN profiles AS p
                     ON p.id = c.profile_id
+                LEFT JOIN (
+                    SELECT comment_id, COUNT(*) AS like_count
+                    FROM comment_likes
+                    GROUP BY comment_id
+                ) AS likes
+                    ON likes.comment_id = c.id
                 WHERE c.id = ?
                 """,
                 (cursor.lastrowid,),
@@ -606,6 +759,22 @@ class SqliteRepository:
         if not row:
             raise RuntimeError("Failed to insert comment")
         return self._row_to_comment(row)
+
+    def set_comment_like(self, comment_id: int, profile_id: str, enabled: bool) -> None:
+        with self._connect() as connection:
+            if enabled:
+                connection.execute(
+                    """
+                    INSERT OR IGNORE INTO comment_likes (comment_id, profile_id, created_at)
+                    VALUES (?, ?, ?)
+                    """,
+                    (comment_id, profile_id, utc_now_iso()),
+                )
+            else:
+                connection.execute(
+                    "DELETE FROM comment_likes WHERE comment_id = ? AND profile_id = ?",
+                    (comment_id, profile_id),
+                )
 
     def ensure_dataset_from_existing_data(self, conference: str, year: int) -> DatasetStatus | None:
         count = self.count_papers(conference=conference, year=year)
@@ -659,6 +828,9 @@ class SqliteRepository:
             id=str(row["id"]),
             display_name=str(row["display_name"]),
             profile_type=str(row["profile_type"] or "guest"),
+            auth_provider=str(row["auth_provider"] or ""),
+            external_auth_id=str(row["external_auth_id"] or ""),
+            avatar_url=str(row["avatar_url"] or ""),
             created_at=str(row["created_at"] or ""),
             updated_at=str(row["updated_at"] or ""),
         )
@@ -672,6 +844,11 @@ class SqliteRepository:
             profile_type=str(row["profile_type"] or "guest"),
             source=str(row["source"] or "user"),
             content=str(row["content"] or ""),
+            auth_provider=str(row["auth_provider"] or ""),
+            avatar_url=str(row["avatar_url"] or ""),
+            parent_comment_id=int(row["parent_comment_id"]) if row["parent_comment_id"] is not None else None,
+            like_count=int(row["like_count"] or 0),
+            liked_by_viewer=bool(row["liked_by_viewer"]),
             created_at=str(row["created_at"] or ""),
             updated_at=str(row["updated_at"] or ""),
             sort_order=int(row["sort_order"] or 0),
@@ -721,6 +898,28 @@ class SqliteRepository:
         for name, definition in additions.items():
             if name not in columns:
                 connection.execute(f"ALTER TABLE saved_entries ADD COLUMN {name} {definition}")
+
+    def _ensure_profile_columns(self, connection: sqlite3.Connection) -> None:
+        rows = connection.execute("PRAGMA table_info(profiles)").fetchall()
+        columns = {str(row["name"]) for row in rows}
+        additions = {
+            "auth_provider": "TEXT NOT NULL DEFAULT ''",
+            "external_auth_id": "TEXT NOT NULL DEFAULT ''",
+            "avatar_url": "TEXT NOT NULL DEFAULT ''",
+        }
+        for name, definition in additions.items():
+            if name not in columns:
+                connection.execute(f"ALTER TABLE profiles ADD COLUMN {name} {definition}")
+
+    def _ensure_comment_columns(self, connection: sqlite3.Connection) -> None:
+        rows = connection.execute("PRAGMA table_info(comments)").fetchall()
+        columns = {str(row["name"]) for row in rows}
+        additions = {
+            "parent_comment_id": "INTEGER",
+        }
+        for name, definition in additions.items():
+            if name not in columns:
+                connection.execute(f"ALTER TABLE comments ADD COLUMN {name} {definition}")
 
     def _row_to_saved_entry(self, row: sqlite3.Row) -> dict:
         return {

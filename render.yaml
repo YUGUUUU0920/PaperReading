@@ -21,3 +21,11 @@ services:
         value: https://api.openai.com/v1
       - key: OPENAI_MODEL
         value: gpt-5.4
+      - key: PAPER_ASSISTANT_PUBLIC_BASE_URL
+        sync: false
+      - key: PAPER_ASSISTANT_AUTH_SECRET
+        sync: false
+      - key: GITHUB_OAUTH_CLIENT_ID
+        sync: false
+      - key: GITHUB_OAUTH_CLIENT_SECRET
+        sync: false

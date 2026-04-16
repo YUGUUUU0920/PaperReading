@@ -4,6 +4,7 @@ import json
 import os
 import tempfile
 import unittest
+from urllib.parse import parse_qs, urlparse
 from unittest.mock import patch
 
 from backend.app.container import build_container
@@ -491,6 +492,129 @@ class ApplicationTests(unittest.TestCase):
         self.assertEqual(listing.status.value, 200)
         self.assertEqual(listing_payload["count"], 4)
         self.assertEqual(len([item for item in listing_payload["items"] if not item["is_seed"]]), 1)
+
+    def test_comment_endpoints_support_reply_threads_and_likes(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            db_path = os.path.join(temp_dir, "papers.db")
+            with patch.dict(
+                os.environ,
+                {
+                    "PAPER_ASSISTANT_DB_PATH": db_path,
+                    "PAPER_ASSISTANT_SCHEDULER_ENABLED": "0",
+                },
+                clear=False,
+            ):
+                app = Application(build_container())
+
+            app.container.repository.upsert_papers(
+                [
+                    Paper(
+                        id=None,
+                        source="icml",
+                        conference="icml",
+                        year=2025,
+                        track="Proceedings",
+                        external_id="thread-demo",
+                        title="Multimodal Agents with Retrieval-Augmented Planning",
+                        authors=["Author A"],
+                        abstract="A multimodal agent planning workflow with retrieval augmentation.",
+                        paper_url="",
+                        pdf_url="",
+                        summary="",
+                        summary_model="",
+                    )
+                ]
+            )
+            paper_id = app.container.repository.search_papers(conference="icml", year=2025, limit=1, offset=0)[0].id
+            viewer = app.dispatch("GET", "/api/viewer")
+            viewer_payload = json.loads(viewer.body.decode("utf-8"))
+            headers = {"X-Viewer-Id": viewer_payload["viewer"]["id"]}
+
+            created = app.dispatch(
+                "POST",
+                f"/api/papers/{paper_id}/comments",
+                body=json.dumps({"content": "这篇方法的多模态规划链条看起来挺完整。"}).encode("utf-8"),
+                headers=headers,
+            )
+            created_payload = json.loads(created.body.decode("utf-8"))
+            root_comment_id = created_payload["item"]["id"]
+
+            replied = app.dispatch(
+                "POST",
+                f"/api/papers/{paper_id}/comments",
+                body=json.dumps({"content": "我也想看它在更长任务上的稳定性。", "parent_comment_id": root_comment_id}).encode("utf-8"),
+                headers=headers,
+            )
+            reply_payload = json.loads(replied.body.decode("utf-8"))
+
+            liked = app.dispatch(
+                "POST",
+                f"/api/comments/{root_comment_id}/like",
+                body=json.dumps({"enabled": True}).encode("utf-8"),
+                headers=headers,
+            )
+            liked_payload = json.loads(liked.body.decode("utf-8"))
+
+            listing = app.dispatch("GET", f"/api/papers/{paper_id}/comments", headers=headers)
+            listing_payload = json.loads(listing.body.decode("utf-8"))
+
+        self.assertEqual(created.status.value, 200)
+        self.assertEqual(replied.status.value, 200)
+        self.assertEqual(reply_payload["item"]["parent_comment_id"], root_comment_id)
+        self.assertEqual(liked.status.value, 200)
+        self.assertEqual(liked_payload["item"]["like_count"], 1)
+        discussion_roots = [item for item in listing_payload["items"] if not item["is_seed"]]
+        self.assertEqual(len(discussion_roots), 1)
+        self.assertEqual(len(discussion_roots[0]["replies"]), 1)
+        self.assertEqual(discussion_roots[0]["replies"][0]["parent_comment_id"], root_comment_id)
+        self.assertTrue(discussion_roots[0]["liked_by_viewer"])
+
+    def test_github_oauth_flow_creates_reusable_identity(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            db_path = os.path.join(temp_dir, "papers.db")
+            with patch.dict(
+                os.environ,
+                {
+                    "PAPER_ASSISTANT_DB_PATH": db_path,
+                    "PAPER_ASSISTANT_SCHEDULER_ENABLED": "0",
+                    "PAPER_ASSISTANT_PUBLIC_BASE_URL": "https://paper-reading.onrender.com",
+                    "PAPER_ASSISTANT_AUTH_SECRET": "test-secret",
+                    "GITHUB_OAUTH_CLIENT_ID": "github-client",
+                    "GITHUB_OAUTH_CLIENT_SECRET": "github-secret",
+                },
+                clear=False,
+            ):
+                app = Application(build_container())
+
+            start = app.dispatch("GET", "/api/auth/github/start?return_path=/paper?id=88")
+            start_headers = dict(start.headers)
+            state = parse_qs(urlparse(start_headers["Location"]).query)["state"][0]
+
+            with patch.object(app.container.http_client, "post_form", return_value={"access_token": "gho_demo"}), patch.object(
+                app.container.http_client,
+                "get_json",
+                return_value={
+                    "id": 123456,
+                    "login": "octocat",
+                    "name": "Octo Cat",
+                    "avatar_url": "https://avatars.githubusercontent.com/u/1?v=4",
+                },
+            ):
+                callback = app.dispatch("GET", f"/api/auth/github/callback?code=demo-code&state={state}")
+
+            callback_headers = dict(callback.headers)
+            token = parse_qs(urlparse(callback_headers["Location"]).query)["auth_session"][0]
+            session = app.dispatch("GET", f"/api/auth/session?token={token}")
+            session_payload = json.loads(session.body.decode("utf-8"))
+
+        self.assertEqual(start.status.value, 302)
+        self.assertIn("github.com/login/oauth/authorize", start_headers["Location"])
+        self.assertEqual(callback.status.value, 302)
+        self.assertIn("/paper?id=88", callback_headers["Location"])
+        self.assertEqual(session.status.value, 200)
+        self.assertTrue(session_payload["viewer"]["is_oauth"])
+        self.assertEqual(session_payload["viewer"]["auth_provider"], "github")
+        self.assertEqual(session_payload["viewer"]["display_name"], "Octo Cat")
 
 
 if __name__ == "__main__":

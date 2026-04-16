@@ -37,6 +37,10 @@ class Settings:
     openai_api_key: str
     openai_base_url: str
     openai_model: str
+    public_base_url: str
+    auth_secret: str
+    github_oauth_client_id: str
+    github_oauth_client_secret: str
     summary_language: str
     refresh_ttl_hours: int
     scheduler_interval_minutes: int
@@ -72,6 +76,10 @@ def get_settings() -> Settings:
         openai_api_key=os.environ.get("OPENAI_API_KEY", "").strip(),
         openai_base_url=os.environ.get("OPENAI_BASE_URL", "https://api.openai.com/v1").rstrip("/"),
         openai_model=os.environ.get("OPENAI_MODEL", "gpt-5.4"),
+        public_base_url=os.environ.get("PAPER_ASSISTANT_PUBLIC_BASE_URL", f"http://{default_host}:{default_port}").rstrip("/"),
+        auth_secret=os.environ.get("PAPER_ASSISTANT_AUTH_SECRET", "paper-reading-auth").strip(),
+        github_oauth_client_id=os.environ.get("GITHUB_OAUTH_CLIENT_ID", "").strip(),
+        github_oauth_client_secret=os.environ.get("GITHUB_OAUTH_CLIENT_SECRET", "").strip(),
         summary_language=os.environ.get("PAPER_ASSISTANT_SUMMARY_LANGUAGE", "zh-CN"),
         refresh_ttl_hours=_int_env("PAPER_ASSISTANT_REFRESH_TTL_HOURS", 24 * 7),
         scheduler_interval_minutes=_int_env("PAPER_ASSISTANT_SCHEDULER_INTERVAL_MINUTES", 60),

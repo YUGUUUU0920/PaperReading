@@ -1360,7 +1360,9 @@ button.pill {
 .comment-stack,
 .comment-list,
 .comment-card,
-.comment-card__identity {
+.comment-card__identity,
+.viewer-card__identity,
+.comment-replies {
   display: grid;
   gap: 12px;
 }
@@ -1388,6 +1390,60 @@ button.pill {
   background: rgba(255, 255, 255, 0.65);
 }
 
+.viewer-card__header,
+.viewer-card__identity,
+.comment-card__identity-main,
+.comment-card__actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.viewer-card__header,
+.comment-card__actions {
+  justify-content: space-between;
+}
+
+.viewer-card__identity,
+.comment-card__identity-main {
+  align-items: flex-start;
+}
+
+.viewer-card__identity p {
+  margin: 4px 0 0;
+  color: var(--muted);
+  line-height: 1.6;
+}
+
+.profile-avatar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  border-radius: 999px;
+  background: linear-gradient(135deg, rgba(21, 111, 99, 0.22), rgba(194, 134, 54, 0.18));
+  color: var(--accent-strong);
+  font-weight: 700;
+  flex: 0 0 auto;
+}
+
+.profile-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.profile-avatar--viewer {
+  width: 48px;
+  height: 48px;
+}
+
+.profile-avatar--comment {
+  width: 38px;
+  height: 38px;
+  font-size: 14px;
+}
+
 .comment-list {
   gap: 10px;
 }
@@ -1413,10 +1469,33 @@ button.pill {
   gap: 12px;
 }
 
+.comment-card__actions {
+  justify-content: flex-start;
+  flex-wrap: wrap;
+}
+
 .comment-card__content {
   margin: 0;
   line-height: 1.8;
   color: var(--text);
+}
+
+.editor-form--reply {
+  margin-top: 4px;
+  padding-top: 12px;
+  border-top: 1px solid rgba(21, 111, 99, 0.08);
+}
+
+.comment-replies {
+  margin-left: 18px;
+  padding-left: 14px;
+  border-left: 2px solid rgba(21, 111, 99, 0.08);
+}
+
+.comment-card[data-depth="1"],
+.comment-card[data-depth="2"],
+.comment-card[data-depth="3"] {
+  background: rgba(255, 255, 255, 0.72);
 }
 
 .lineage-preview-grid {
@@ -1718,7 +1797,8 @@ button.pill {
   .selected-tags-head,
   .saved-group__head,
   .theme-group__head,
-  .community-panel__head {
+  .community-panel__head,
+  .viewer-card__header {
     flex-direction: column;
     align-items: flex-start;
   }
@@ -1726,6 +1806,15 @@ button.pill {
   .field-grid,
   .theme-paper-grid {
     grid-template-columns: 1fr;
+  }
+
+  .comment-card__actions {
+    align-items: stretch;
+  }
+
+  .comment-replies {
+    margin-left: 8px;
+    padding-left: 10px;
   }
 
   .hero-motion {

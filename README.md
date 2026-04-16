@@ -9,6 +9,8 @@
 - 提供中文导读、中文标签与研究方向提示
 - 展示引用量、开放获取、代码资源等辅助信号
 - 详情页支持相关论文推荐
+- 评论区支持开场观点、回复楼中楼与点赞
+- 支持访客身份与 GitHub 登录参与讨论
 - 支持多标签组合筛选、按引用量排序
 - 支持收藏夹与待读列表、分组、备注和已读状态
 - 多页面前端，适合公网直接访问
@@ -69,6 +71,7 @@ python3 main.py
 - `/paper?id=<paper_id>`：论文导读
 - `/datasets`：论文库总览
 - `/lists`：收藏与待读
+- `/lineage`：研究脉络
 
 ## Docker 启动
 
@@ -97,7 +100,8 @@ docker run --rm -p 8000:8000 -v "$(pwd)/data:/app/data" paper-reading
 3. 连接 GitHub 仓库 `YUGUUUU0920/PaperReading`
 4. Render 会读取仓库里的 `render.yaml`
 5. 在 Render 控制台补上 `OPENAI_API_KEY`
-6. 部署完成后，访问 Render 分配的公网域名
+6. 如果需要 GitHub 登录，再补上 `PAPER_ASSISTANT_PUBLIC_BASE_URL`、`PAPER_ASSISTANT_AUTH_SECRET`、`GITHUB_OAUTH_CLIENT_ID`、`GITHUB_OAUTH_CLIENT_SECRET`
+7. 部署完成后，访问 Render 分配的公网域名
 
 仓库已包含：
 
@@ -144,6 +148,18 @@ export PAPER_ASSISTANT_SCHEDULER_INTERVAL_MINUTES=60
 export OPENAI_API_KEY="..."
 export OPENAI_BASE_URL="https://api.openai.com/v1"
 export OPENAI_MODEL="gpt-5.4"
+
+# 可选：GitHub OAuth 登录
+export PAPER_ASSISTANT_PUBLIC_BASE_URL="https://your-domain.example.com"
+export PAPER_ASSISTANT_AUTH_SECRET="replace-with-a-random-secret"
+export GITHUB_OAUTH_CLIENT_ID="..."
+export GITHUB_OAUTH_CLIENT_SECRET="..."
+```
+
+如果启用 GitHub 登录，OAuth App 的回调地址需要指向：
+
+```text
+https://your-domain.example.com/api/auth/github/callback
 ```
 
 ## 官方数据源

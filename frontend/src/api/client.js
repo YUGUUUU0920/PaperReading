@@ -2,6 +2,23 @@ const VIEWER_STORAGE_KEY = "researchAtlasViewer";
 
 let viewerCache = null;
 let viewerPromise = null;
+let authNotice = "";
+
+function readCurrentUrl() {
+  return new URL(window.location.href);
+}
+
+function buildCleanCurrentPath() {
+  const url = readCurrentUrl();
+  url.searchParams.delete("auth_session");
+  url.searchParams.delete("auth_error");
+  const query = url.searchParams.toString();
+  return `${url.pathname}${query ? `?${query}` : ""}`;
+}
+
+function replaceCurrentUrl(path) {
+  window.history.replaceState({}, "", path);
+}
 
 function loadStoredViewer() {
   if (viewerCache) return viewerCache;
@@ -29,6 +46,22 @@ function storeViewer(viewer) {
   }
 }
 
+function consumeAuthErrorSignal() {
+  const url = readCurrentUrl();
+  const error = url.searchParams.get("auth_error");
+  if (!error) return;
+  const messages = {
+    github_login_unavailable: "当前站点暂未启用 GitHub 登录。",
+    github_login_cancelled: "你刚刚取消了 GitHub 登录。",
+    github_state_expired: "这次登录链接已经过期，请重新发起一次登录。",
+    github_code_missing: "登录过程没有拿到授权码，请再试一次。",
+    github_token_failed: "GitHub 登录没有成功换取身份，请稍后重试。",
+    github_login_failed: "GitHub 登录暂时失败了，请稍后再试。",
+  };
+  authNotice = messages[error] || "登录没有完成，我们先回到当前页面。";
+  replaceCurrentUrl(buildCleanCurrentPath());
+}
+
 async function rawRequest(url, options = {}) {
   const response = await fetch(url, {
     headers: {
@@ -47,7 +80,29 @@ async function rawRequest(url, options = {}) {
   return data;
 }
 
+async function consumePendingAuthSession() {
+  const url = readCurrentUrl();
+  const token = url.searchParams.get("auth_session");
+  if (!token) return null;
+  try {
+    const data = await rawRequest(`/api/auth/session?token=${encodeURIComponent(token)}`);
+    if (data.viewer?.id) {
+      storeViewer(data.viewer);
+      authNotice = data.viewer.is_oauth ? "GitHub 身份已连接，可以继续参与讨论了。" : authNotice;
+    }
+    return data.viewer || null;
+  } catch (error) {
+    authNotice = error.message || "登录会话已失效，请重新登录。";
+    return null;
+  } finally {
+    replaceCurrentUrl(buildCleanCurrentPath());
+  }
+}
+
 async function ensureViewer() {
+  consumeAuthErrorSignal();
+  const upgraded = await consumePendingAuthSession();
+  if (upgraded?.id) return upgraded;
   const cached = loadStoredViewer();
   if (cached?.id) return cached;
   if (!viewerPromise) {
@@ -79,6 +134,16 @@ async function request(url, options = {}, { viewer = true } = {}) {
 
 export const apiClient = {
   ensureViewer,
+
+  consumeAuthNotice() {
+    const value = authNotice;
+    authNotice = "";
+    return value;
+  },
+
+  buildGithubLoginUrl(returnPath = buildCleanCurrentPath()) {
+    return `/api/auth/github/start?return_path=${encodeURIComponent(returnPath || "/paper")}`;
+  },
 
   getViewer() {
     return request("/api/viewer");
@@ -119,10 +184,20 @@ export const apiClient = {
     return request(`/api/papers/${paperId}/comments`);
   },
 
-  addComment(paperId, { content }) {
+  addComment(paperId, { content, parentCommentId = null }) {
     return request(`/api/papers/${paperId}/comments`, {
       method: "POST",
-      body: JSON.stringify({ content }),
+      body: JSON.stringify({
+        content,
+        parent_comment_id: parentCommentId,
+      }),
+    });
+  },
+
+  toggleCommentLike(commentId, { enabled }) {
+    return request(`/api/comments/${commentId}/like`, {
+      method: "POST",
+      body: JSON.stringify({ enabled }),
     });
   },
 
