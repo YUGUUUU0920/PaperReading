@@ -121,6 +121,9 @@ function renderHero() {
       return `<a class="pill pill--tag" data-tone="${meta.tone}" href="${href}">${escapeHtml(theme)}</a>`;
     })
     .join("");
+  const clusterSummary = THEME_GROUPS.slice(0, 3)
+    .map((group) => `<span class="signal">${escapeHtml(group.title)}</span>`)
+    .join("");
 
   return renderPageHero({
     eyebrow: "Browse Themes",
@@ -146,6 +149,16 @@ function renderHero() {
           </div>
           <div class="tag-row tag-row--wrap">
             ${chips}
+          </div>
+        </article>
+        <article class="hero-feature-card">
+          <div class="section-label-row">
+            <span class="section-label">怎么用这页</span>
+            <span class="signal">${THEME_GROUPS.length} 个主题簇</span>
+          </div>
+          <p>先按主题簇判断大方向，再进入单个主题，最后回到搜索页继续加关键词和年份筛选。</p>
+          <div class="tag-row tag-row--wrap">
+            ${clusterSummary}
           </div>
         </article>
       </div>

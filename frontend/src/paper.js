@@ -30,15 +30,25 @@ const store = createStore({
 
 function render() {
   const state = store.getState();
+  const shouldShowBanner =
+    !state.activePaper ||
+    state.loadingDetail ||
+    !["正在准备论文详情页...", "正在整理论文详情、标签与相关资源...", "论文详情已加载。"].includes(state.message);
   document.getElementById("app").innerHTML = `
     <main class="app-shell app-shell--detail">
       ${renderTopNav("explore")}
-      <section class="status-banner panel">
-        <div>
-          <h2>论文导读</h2>
-          <p>${state.message}</p>
-        </div>
-      </section>
+      ${
+        shouldShowBanner
+          ? `
+            <section class="status-banner panel">
+              <div>
+                <h2>论文导读</h2>
+                <p>${state.message}</p>
+              </div>
+            </section>
+          `
+          : ""
+      }
       ${renderPaperDetail(state)}
     </main>
   `;

@@ -206,6 +206,10 @@
   padding: 30px;
 }
 
+.page-hero--solo {
+  grid-template-columns: 1fr;
+}
+
 .page-hero::before,
 .search-station::before {
   content: "";
@@ -271,6 +275,10 @@
   display: grid;
   gap: 14px;
   align-content: start;
+}
+
+.page-hero--solo .page-hero__main {
+  max-width: 74ch;
 }
 
 .hero-feature-card,
@@ -993,6 +1001,11 @@ textarea:focus {
   .top-nav__cluster {
     width: 100%;
     align-items: flex-start;
+  }
+
+  .brand-subtitle,
+  .top-nav__meta {
+    display: none;
   }
 
   .page-hero,

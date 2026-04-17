@@ -52,8 +52,11 @@ export function renderPageHero({
   asideHtml = "",
   className = "",
 } = {}) {
+  const heroClass = ["page-hero", "panel", className, !asideHtml ? "page-hero--solo" : ""]
+    .filter(Boolean)
+    .join(" ");
   return `
-    <section class="page-hero panel ${escapeHtml(className).trim()}">
+    <section class="${escapeHtml(heroClass).trim()}">
       <div class="page-hero__main">
         <p class="eyebrow">${escapeHtml(eyebrow)}</p>
         <h1>${escapeHtml(title || "")}</h1>

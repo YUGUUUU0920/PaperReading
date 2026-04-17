@@ -8,3 +8,4 @@ data/*.sqlite3
 logs/
 skills/.skills_store_lock.json
 skills/self-improving/
+.playwright-cli/
