@@ -1,0 +1,8 @@
+interface:
+  display_name: "Frontend Craft Director"
+  short_description: "规划、查询样式库并打磨更成熟的前端界面"
+  brand_color: "#1F6F78"
+  default_prompt: "Use $frontend-craft-director to choose a visual direction, query the local design library, and build or review a polished frontend UI with strong hierarchy, accessible interactions, responsive layouts, and intentional motion."
+
+policy:
+  allow_implicit_invocation: true
