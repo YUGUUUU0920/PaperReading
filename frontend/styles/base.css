@@ -14,11 +14,14 @@ html {
 
 body {
   color: var(--text);
-  font-family: "Avenir Next", "Segoe UI", sans-serif;
+  font-family: var(--font-sans);
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
   background:
-    radial-gradient(circle at top left, rgba(255, 210, 145, 0.42), transparent 30%),
-    radial-gradient(circle at top right, rgba(49, 130, 110, 0.22), transparent 30%),
-    linear-gradient(180deg, #f7f2ea 0%, #efe8df 100%);
+    radial-gradient(circle at top left, rgba(255, 210, 145, 0.26), transparent 28%),
+    radial-gradient(circle at top right, rgba(49, 130, 110, 0.14), transparent 24%),
+    linear-gradient(180deg, #f6f1ea 0%, #efe7de 100%);
 }
 
 button,
@@ -35,7 +38,9 @@ h1,
 h2,
 h3 {
   margin: 0;
-  font-family: "Iowan Old Style", "Palatino Linotype", serif;
+  font-family: var(--font-display);
+  letter-spacing: -0.02em;
+  line-height: 1.08;
 }
 
 p {

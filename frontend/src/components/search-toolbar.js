@@ -1,25 +1,15 @@
 import { escapeHtml } from "../utils/dom.js";
 import { getTagTone } from "../utils/tags.js";
 
-function renderWorkbenchStats(bootstrap, filters) {
+function renderStats(bootstrap, filters) {
   const conferenceCount = (bootstrap.conferences || []).length;
   const latestYear = Math.max(...((bootstrap.conferences || []).flatMap((item) => item.years || []).concat([filters.year || 2025])));
   const tagCount = Array.isArray(filters.tags) ? filters.tags.length : 0;
-
   return `
-    <div class="workbench-stats">
-      <article class="workbench-stat-card">
-        <strong>${conferenceCount}</strong>
-        <span>覆盖来源</span>
-      </article>
-      <article class="workbench-stat-card">
-        <strong>${latestYear}</strong>
-        <span>默认最新切片</span>
-      </article>
-      <article class="workbench-stat-card">
-        <strong>${tagCount}</strong>
-        <span>已选标签</span>
-      </article>
+    <div class="hero-pill-row">
+      <span class="signal">${conferenceCount} 个来源</span>
+      <span class="signal">${latestYear} 最新年份</span>
+      <span class="signal">${tagCount} 个已选主题</span>
     </div>
   `;
 }
@@ -34,7 +24,7 @@ export function renderSearchToolbar(state) {
     })
     .join("");
   const tagOptions = [
-    `<option value="">选择一个标签</option>`,
+    `<option value="">选择一个主题</option>`,
     ...((bootstrap.tagOptions || [])
       .filter((tag) => !selectedTags.includes(tag))
       .map((tag) => `<option value="${escapeHtml(tag)}">${escapeHtml(tag)}</option>`)),
@@ -49,28 +39,13 @@ export function renderSearchToolbar(state) {
   return `
     <section class="toolbar panel toolbar--compact toolbar--workbench">
       <div class="toolbar-copy toolbar-copy--compact">
-        <div class="toolbar-copy__row">
-          <div>
-            <p class="eyebrow">Launch Explorer</p>
-            <h1>榜单发现</h1>
-            <p class="toolbar-text">
-              按会议、年份、关键词与标签筛选研究新品。如果你还没想好从哪里开始，可以先看看专题合集或今日主榜。
-            </p>
-          </div>
-          <div class="toolbar-jump-row">
-            <a class="button button-chip" href="/">首页</a>
-            <a class="button button-chip" href="/themes">专题合集</a>
-            <a class="button button-chip" href="/lists">阅读清单</a>
-            <a class="button button-chip" href="/datasets">论文库</a>
-          </div>
-        </div>
-        <div class="hero-pill-row">
-          <span class="signal">关键词检索</span>
-          <span class="signal">中文专题</span>
-          <span class="signal">热度排序</span>
-          <span class="signal">独立导读页</span>
-        </div>
-        ${renderWorkbenchStats(bootstrap, filters)}
+        <p class="eyebrow">Explore Papers</p>
+        <h1>搜索论文</h1>
+        <p class="toolbar-text">
+          用会议、年份、关键词和中文主题缩小结果范围。
+          如果你已经知道方向，可以先加主题标签，再进入论文详情继续阅读。
+        </p>
+        ${renderStats(bootstrap, filters)}
       </div>
       <form id="search-form" class="search-form">
         <label>
@@ -88,7 +63,7 @@ export function renderSearchToolbar(state) {
           <input name="query" type="search" value="${escapeHtml(filters.query)}" placeholder="标题、作者、摘要、方法名">
         </label>
         <label>
-          <span>添加标签</span>
+          <span>添加主题</span>
           <select id="tag-picker" name="tag_picker">
             ${tagOptions}
           </select>
@@ -101,8 +76,8 @@ export function renderSearchToolbar(state) {
         </label>
         <div class="query-field selected-tags-panel">
           <div class="selected-tags-head">
-            <span>筛选中的主题</span>
-            <button id="add-tag-button" class="button button-chip" type="button" ${loading ? "disabled" : ""}>加入标签</button>
+            <span>当前筛选</span>
+            <button id="add-tag-button" class="button button-chip" type="button" ${loading ? "disabled" : ""}>加入主题</button>
           </div>
           ${
             selectedTags.length
@@ -114,11 +89,11 @@ export function renderSearchToolbar(state) {
                      )
                      .join("")}
                  </div>`
-              : `<p class="tag-empty">可以直接输入关键词，也可以先加一两个主题标签，让结果更聚焦。</p>`
+              : `<p class="tag-empty">先加一两个主题标签，通常能比只输关键词更快收窄结果。</p>`
           }
         </div>
         <div class="toolbar-actions">
-          <button type="submit" class="button button-primary" ${loading ? "disabled" : ""}>开始探索</button>
+          <button type="submit" class="button button-primary" ${loading ? "disabled" : ""}>开始搜索</button>
           <button id="refresh-button" type="button" class="button button-secondary" ${loading ? "disabled" : ""}>刷新数据</button>
         </div>
       </form>

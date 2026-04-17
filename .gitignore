@@ -1,6 +1,7 @@
 __pycache__/
 *.pyc
 .venv/
+.DS_Store
 data/pycache/
 data/papers.db
 data/*.sqlite3

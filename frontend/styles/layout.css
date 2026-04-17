@@ -1,17 +1,17 @@
 .app-shell {
-  width: min(1440px, calc(100% - 32px));
+  width: min(1220px, calc(100% - 64px));
   margin: 0 auto;
-  padding: 28px 0 40px;
+  padding: 32px 0 56px;
   display: grid;
-  gap: 18px;
+  gap: 20px;
 }
 
 .app-shell--detail {
-  width: min(980px, calc(100% - 32px));
+  width: min(960px, calc(100% - 64px));
 }
 
 .app-shell--home {
-  width: min(1320px, calc(100% - 32px));
+  width: min(1180px, calc(100% - 64px));
 }
 
 .panel {
@@ -27,14 +27,14 @@
   align-items: center;
   justify-content: space-between;
   gap: 16px;
-  padding: 18px 24px;
+  padding: 18px 22px;
 }
 
 .toolbar {
   display: grid;
-  grid-template-columns: 1.15fr 1fr;
-  gap: 20px;
-  padding: 24px;
+  grid-template-columns: 1.1fr 0.9fr;
+  gap: 24px;
+  padding: 28px;
 }
 
 .toolbar--compact {
@@ -46,13 +46,13 @@
 .status-banner,
 .list-panel,
 .detail-panel {
-  padding: 24px;
+  padding: 28px;
 }
 
 .workspace {
   display: grid;
   grid-template-columns: minmax(420px, 1fr) minmax(460px, 1fr);
-  gap: 18px;
+  gap: 20px;
 }
 
 .workspace--single {
@@ -113,8 +113,9 @@
 
 @media (max-width: 760px) {
   .app-shell {
-    width: min(100% - 16px, 1440px);
-    padding-top: 16px;
+    width: min(100% - 24px, 1220px);
+    padding-top: 18px;
+    padding-bottom: 32px;
   }
 
   .toolbar,
@@ -130,7 +131,7 @@
   .status-banner,
   .list-panel,
   .detail-panel {
-    padding: 18px;
+    padding: 20px;
   }
 
   .search-form {

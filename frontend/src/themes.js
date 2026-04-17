@@ -26,7 +26,7 @@ function renderThemeCard(theme, defaults) {
     <a class="atlas-feature-card" href="${href}" data-tone="${meta.tone}">
       <div class="atlas-feature-card__head">
         <span class="pill pill--tag" data-tone="${meta.tone}">${escapeHtml(theme)}</span>
-        <span class="atlas-feature-card__arrow">打开合集</span>
+        <span class="atlas-feature-card__arrow">进入主题</span>
       </div>
       <strong>${escapeHtml(theme)}</strong>
       <p>${escapeHtml(meta.description)}</p>
@@ -41,7 +41,7 @@ function renderThemeGroups() {
       <section class="panel theme-cluster">
         <div class="section-head">
           <div>
-            <p class="eyebrow">Collection Cluster</p>
+            <p class="eyebrow">Theme Cluster</p>
             <h2>${escapeHtml(group.title)}</h2>
             <p>${escapeHtml(group.description)}</p>
           </div>
@@ -71,9 +71,9 @@ function renderConferenceTracks() {
     <section class="panel home-section">
       <div class="section-head">
           <div>
-            <p class="eyebrow">Archive Slices</p>
+            <p class="eyebrow">Conference Entry</p>
             <h2>按会议切入</h2>
-            <p>如果你已经知道要看的会议批次，可以从这里直接进入对应榜单。</p>
+            <p>如果你已经知道要看的会议批次，可以从这里直接进入对应结果页。</p>
           </div>
         </div>
       <div class="conference-grid">
@@ -94,7 +94,7 @@ function renderConferenceTracks() {
                   <span class="pill">${escapeHtml(item.year)}</span>
                 </div>
                 <strong>${escapeHtml(item.label)} ${escapeHtml(item.year)}</strong>
-                <p>查看这一会议在该年份的新品榜单，再继续筛选关键词和标签。</p>
+                <p>查看这一会议在该年份下的论文，再继续按关键词和主题细分。</p>
               </a>
             `;
           })
@@ -108,11 +108,11 @@ function render() {
   const defaults = state.bootstrap.defaults || { conference: "icml", year: 2025 };
   document.getElementById("app").innerHTML = `
     <main class="app-shell">
-      ${renderTopNav("themes")}
+      ${renderTopNav("")}
       <section class="toolbar panel toolbar--compact toolbar--browse">
         <div class="toolbar-copy toolbar-copy--compact">
-          <p class="eyebrow">Collections</p>
-          <h1>按专题合集开始浏览</h1>
+          <p class="eyebrow">Browse Themes</p>
+          <h1>按主题浏览</h1>
           <p class="toolbar-text">${escapeHtml(state.message)}</p>
           <div class="hero-pill-row">
             ${FEATURED_THEMES.slice(0, 6)
@@ -142,7 +142,7 @@ apiClient
   .getBootstrap()
   .then((bootstrap) => {
     state.bootstrap = bootstrap;
-    state.message = "每个合集都会直接带你看到对应方向的上榜论文、中文标签和导读入口。";
+    state.message = "每个主题都会带你进入一组更相关的论文结果，适合先建立方向感。";
     render();
   })
   .catch((error) => {
