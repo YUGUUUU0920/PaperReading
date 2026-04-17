@@ -90,10 +90,10 @@ function renderPaperCard(paper, filters, selectedTags) {
 function renderLanding(state) {
   const { filters } = state;
   return `
-    <div class="landing-stack landing-stack--compact">
-      <div class="empty-card empty-card--large atlas-note">
+    <div class="landing-stack">
+      <div class="empty-card empty-card--large">
         <h3>还没想好搜什么？</h3>
-        <p>可以先从热门主题开始，再回到这里做更细的筛选。</p>
+        <p>先从热门主题进入，再回到这里做更细的关键词和年份筛选，会比从空白开始轻松很多。</p>
         <div class="card-actions">
           <a class="button button-primary" href="/themes">查看热门主题</a>
           <a class="button button-secondary" href="/lists">查看阅读清单</a>
@@ -155,8 +155,8 @@ export function renderPaperList(state) {
       <section class="list-panel panel">
         <div class="section-head">
           <div>
-            <h2>开始一次新的探索</h2>
-            <p>输入关键词，或直接从下面的主题入口跳转。</p>
+            <h2>先定义这次研究探索的范围</h2>
+            <p>输入问题、关键词或主题标签，把论文结果缩到真正值得读的一小批。</p>
           </div>
         </div>
         ${renderLanding(state)}

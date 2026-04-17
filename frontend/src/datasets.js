@@ -1,7 +1,9 @@
 import { apiClient } from "./api/client.js";
+import { renderPageHero } from "./components/page-hero.js";
 import { renderTopNav } from "./components/top-nav.js";
 import { createStore } from "./state/store.js";
 import { escapeHtml } from "./utils/dom.js";
+import { buildSearchUrl } from "./utils/url.js";
 
 const store = createStore({
   bootstrap: {
@@ -38,7 +40,7 @@ function renderDatasetCards(state) {
               <p class="preview">最近更新：${escapeHtml(dataset.last_synced_at || "暂无")}</p>
               ${dataset.last_error ? `<p class="error-text">${escapeHtml(dataset.last_error)}</p>` : ""}
               <div class="card-actions">
-                <a class="button button-ghost" href="/?conference=${escapeHtml(dataset.conference)}&year=${escapeHtml(dataset.year)}">查看论文</a>
+                <a class="button button-ghost" href="${buildSearchUrl({ conference: dataset.conference, year: dataset.year })}">查看论文</a>
                 <button class="button button-primary" data-refresh="${escapeHtml(dataset.conference)}:${escapeHtml(dataset.year)}">更新论文库</button>
               </div>
             </article>
@@ -62,11 +64,15 @@ function renderQuickActions(state) {
       ${items
         .map(
           (item) => `
-            <article class="empty-card">
-              <h3>${escapeHtml(item.label)} ${escapeHtml(item.year)}</h3>
-              <p>想先整理某个会议年份的论文，可以从这里直接开始。</p>
+            <article class="conference-card">
+              <div class="paper-card__meta">
+                <span class="pill">${escapeHtml(item.label)}</span>
+                <span class="pill">${escapeHtml(item.year)}</span>
+              </div>
+              <strong>${escapeHtml(item.label)} ${escapeHtml(item.year)}</strong>
+              <p>从这里直接进入该会议年份，开始浏览与整理论文。</p>
               <div class="card-actions">
-                <a class="button button-ghost" href="/?conference=${escapeHtml(item.code)}&year=${escapeHtml(item.year)}">浏览论文</a>
+                <a class="button button-ghost" href="${buildSearchUrl({ conference: item.code, year: item.year })}">浏览论文</a>
                 <button class="button button-secondary" data-refresh="${escapeHtml(item.code)}:${escapeHtml(item.year)}">更新数据</button>
               </div>
             </article>
@@ -77,24 +83,37 @@ function renderQuickActions(state) {
   `;
 }
 
+function renderHero(state) {
+  return renderPageHero({
+    eyebrow: "Research Coverage",
+    title: "先知道你手上这套论文库覆盖到哪里。",
+    description:
+      "这里集中展示已收录的会议年份、论文规模和更新时间。你可以先确认覆盖范围，再决定从哪个会议批次开始继续读。",
+    stats: [
+      { value: state.datasets.length || 0, label: "已同步批次" },
+      { value: (state.bootstrap.conferences || []).length, label: "会议来源" },
+      { value: state.bootstrap.defaults?.year || 2025, label: "默认年份" },
+    ],
+    actions: [
+      { href: "/explore", label: "打开搜索", className: "button-primary" },
+      { href: "/themes", label: "浏览主题", className: "button-secondary" },
+    ],
+    note: state.message,
+  });
+}
+
 function render() {
   const state = store.getState();
   document.getElementById("app").innerHTML = `
     <main class="app-shell">
       ${renderTopNav("datasets")}
-      <section class="toolbar panel toolbar--compact">
-        <div class="toolbar-copy">
-          <p class="eyebrow">Research Coverage</p>
-          <h1>数据概览</h1>
-          <p class="toolbar-text">${escapeHtml(state.message)}</p>
-        </div>
-      </section>
+      ${renderHero(state)}
       <section class="workspace workspace--single">
         <section class="list-panel panel">
           <div class="section-head">
             <div>
               <h2>已收录年份</h2>
-              <p>查看每个会议年份的论文规模与最近更新时间。</p>
+              <p>查看每个会议年份的论文规模、同步状态与最近更新时间。</p>
             </div>
           </div>
           ${renderDatasetCards(state)}

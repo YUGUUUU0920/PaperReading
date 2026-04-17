@@ -1,7 +1,7 @@
 import { apiClient } from "./api/client.js";
-import { renderTopNav } from "./components/top-nav.js";
 import { renderLineageExplorer } from "./components/lineage-sections.js";
-import { escapeHtml } from "./utils/dom.js";
+import { renderPageHero } from "./components/page-hero.js";
+import { renderTopNav } from "./components/top-nav.js";
 import { readSearchParams } from "./utils/url.js";
 
 const state = {
@@ -18,17 +18,31 @@ const state = {
   },
 };
 
+function renderHero() {
+  const coverage = state.payload.coverage || {};
+  return renderPageHero({
+    eyebrow: "Research Lineage",
+    title: "顺着主干，看清一个方向怎么长出来。",
+    description:
+      "这里不是按论文列表散看，而是把同一主题下的代表论文串成主干与分支。你可以先看起点，再看后来怎样推进和分叉。",
+    stats: [
+      { value: coverage.paper_count || 0, label: "已串联论文" },
+      { value: coverage.dataset_count || 0, label: "追踪数据源" },
+      { value: state.payload.items?.length || 0, label: "主题脉络" },
+    ],
+    actions: [
+      { href: "/themes", label: "先看主题", className: "button-secondary" },
+      { href: "/explore", label: "打开搜索", className: "button-ghost" },
+    ],
+    note: state.message,
+  });
+}
+
 function render() {
   document.getElementById("app").innerHTML = `
     <main class="app-shell app-shell--home">
       ${renderTopNav("lineage")}
-      <section class="toolbar panel toolbar--compact toolbar--browse">
-        <div class="toolbar-copy toolbar-copy--compact">
-          <p class="eyebrow">Research Lineage</p>
-          <h1>研究脉络</h1>
-          <p class="toolbar-text">${escapeHtml(state.message)}</p>
-        </div>
-      </section>
+      ${renderHero()}
       ${renderLineageExplorer(state.payload, { activeTheme: state.activeTheme })}
     </main>
   `;

@@ -1,4 +1,5 @@
 import { apiClient } from "./api/client.js";
+import { renderPageHero } from "./components/page-hero.js";
 import { renderTopNav } from "./components/top-nav.js";
 import { createStore } from "./state/store.js";
 import { escapeHtml } from "./utils/dom.js";
@@ -160,22 +161,30 @@ function renderSavedSection(title, listType, items) {
   `;
 }
 
+function renderHero(state) {
+  return renderPageHero({
+    eyebrow: "Reading Workspace",
+    title: "把你准备深入读的论文真正整理起来。",
+    description:
+      "收藏和待读不该只是两个堆积按钮。这里按分组、阅读状态和备注把论文整理成一套可继续推进的阅读工作台。",
+    stats: [
+      { value: state.counts.favorite || 0, label: "收藏" },
+      { value: state.counts.reading || 0, label: "待读" },
+    ],
+    actions: [
+      { href: "/explore", label: "继续找论文", className: "button-primary" },
+      { href: "/themes", label: "从主题进入", className: "button-secondary" },
+    ],
+    note: state.message,
+  });
+}
+
 function render() {
   const state = store.getState();
   document.getElementById("app").innerHTML = `
     <main class="app-shell">
       ${renderTopNav("lists")}
-      <section class="toolbar panel toolbar--compact">
-        <div class="toolbar-copy">
-          <p class="eyebrow">Reading Workspace</p>
-          <h1>收藏与待读</h1>
-          <p class="toolbar-text">${escapeHtml(state.message)}</p>
-          <div class="status-pills">
-            <span class="pill">收藏 ${escapeHtml(state.counts.favorite)}</span>
-            <span class="pill">待读 ${escapeHtml(state.counts.reading)}</span>
-          </div>
-        </div>
-      </section>
+      ${renderHero(state)}
       <section class="workspace workspace--single">
         ${renderSavedSection("收藏夹", "favorite", state.favorite)}
         ${renderSavedSection("待读列表", "reading", state.reading)}

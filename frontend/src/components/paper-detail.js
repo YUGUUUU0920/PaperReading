@@ -152,8 +152,8 @@ function renderViewerPanel(state) {
     <div class="community-panel">
       <div class="community-panel__head">
         <div>
-          <h3>评论区</h3>
-          <p>留下你的判断、质疑或补充观点，也可以先看看开场观点再决定怎么读这篇论文。</p>
+          <h3>讨论区</h3>
+          <p>留下你的判断、质疑或补充观点，也可以先看看别人的开场观点再决定怎样读这篇论文。</p>
         </div>
         <div class="signal-row">
           <span class="signal">${escapeHtml(isOauth ? "GitHub 身份" : viewer?.is_guest ? "访客身份" : "个人身份")}</span>
@@ -343,11 +343,17 @@ export function renderPaperDetail(state) {
   }
 
   const actionLabel = loadingSummary ? "导读生成中..." : "更新中文导读";
+  const summaryMeta = [];
+  if (activePaper.summary_source_label) summaryMeta.push(activePaper.summary_source_label);
+  if (activePaper.summary_updated_at) summaryMeta.push(activePaper.summary_updated_at);
 
   return `
     <section class="detail-panel panel">
       <div class="detail-topline">
         <a class="button button-ghost" href="${escapeHtml(backUrl || "/")}">返回论文列表</a>
+        <div class="paper-card__meta">
+          ${summaryMeta.map((item) => `<span class="pill">${escapeHtml(item)}</span>`).join("")}
+        </div>
       </div>
       <div class="detail-head">
         <div class="paper-card__meta">
@@ -359,39 +365,38 @@ export function renderPaperDetail(state) {
         <p class="authors">${escapeHtml(activePaper.authors_text)}</p>
         ${renderSignals(activePaper)}
         ${renderTags(activePaper.tags || [])}
+        <div class="detail-actions">
+          <button id="summarize-paper-button" class="button button-primary" ${loadingSummary || loadingDetail ? "disabled" : ""}>${actionLabel}</button>
+          ${activePaper.paper_url ? `<a class="button button-ghost" href="${escapeHtml(activePaper.paper_url)}" target="_blank" rel="noreferrer">官方详情</a>` : ""}
+          ${activePaper.pdf_url ? `<a class="button button-secondary" href="${escapeHtml(activePaper.pdf_url)}" target="_blank" rel="noreferrer">打开 PDF</a>` : ""}
+        </div>
+        ${renderSaveActions(activePaper)}
+        ${renderSavedSummary(activePaper)}
       </div>
+      <div class="detail-layout">
+        <div class="detail-layout__main">
+          <div class="detail-block">
+            <h3>这篇论文先看什么</h3>
+            <div class="markdown">${markdownToHtml(activePaper.summary || "点击上方按钮即可生成中文总结。")}</div>
+          </div>
 
-      <div class="detail-actions">
-        <button id="summarize-paper-button" class="button button-primary" ${loadingSummary || loadingDetail ? "disabled" : ""}>${actionLabel}</button>
-        ${activePaper.paper_url ? `<a class="button button-ghost" href="${escapeHtml(activePaper.paper_url)}" target="_blank" rel="noreferrer">官方详情</a>` : ""}
-        ${activePaper.pdf_url ? `<a class="button button-secondary" href="${escapeHtml(activePaper.pdf_url)}" target="_blank" rel="noreferrer">打开 PDF</a>` : ""}
-      </div>
-      ${renderSaveActions(activePaper)}
-      ${renderSavedSummary(activePaper)}
+          <div class="detail-block">
+            <h3>原始摘要</h3>
+            <p>${escapeHtml(activePaper.abstract || (loadingDetail ? "摘要加载中..." : "当前暂未展示摘要。"))}</p>
+          </div>
 
-      ${renderResources(activePaper)}
-
-      <div class="detail-block">
-        <h3>摘要</h3>
-        <p>${escapeHtml(activePaper.abstract || (loadingDetail ? "摘要加载中..." : "当前暂未展示摘要。"))}</p>
-      </div>
-
-      <div class="detail-block">
-        <div class="detail-summary-head">
-          <h3>中文总结</h3>
-          <div class="paper-card__meta">
-            ${activePaper.summary_source_label ? `<span class="pill pill--warm">${escapeHtml(activePaper.summary_source_label)}</span>` : ""}
-            ${activePaper.summary_updated_at ? `<span class="pill">${escapeHtml(activePaper.summary_updated_at)}</span>` : ""}
+          <div class="detail-block">
+            ${renderViewerPanel(state)}
+            ${renderComments(state)}
           </div>
         </div>
-        <div class="markdown">${markdownToHtml(activePaper.summary || "点击上方按钮即可生成中文总结。")}</div>
-      </div>
-
-      ${renderRelated(activePaper)}
-
-      <div class="detail-block">
-        ${renderViewerPanel(state)}
-        ${renderComments(state)}
+        <aside class="detail-layout__side">
+          <div class="detail-block detail-block--side">
+            <h3>资源入口</h3>
+            ${renderResources(activePaper) || `<p class="tag-empty">当前还没有补充资源链接。</p>`}
+          </div>
+          ${renderRelated(activePaper)}
+        </aside>
       </div>
     </section>
   `;

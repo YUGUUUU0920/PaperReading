@@ -6,10 +6,19 @@ function renderStats(bootstrap, filters) {
   const latestYear = Math.max(...((bootstrap.conferences || []).flatMap((item) => item.years || []).concat([filters.year || 2025])));
   const tagCount = Array.isArray(filters.tags) ? filters.tags.length : 0;
   return `
-    <div class="hero-pill-row">
-      <span class="signal">${conferenceCount} 个来源</span>
-      <span class="signal">${latestYear} 最新年份</span>
-      <span class="signal">${tagCount} 个已选主题</span>
+    <div class="page-hero__stats page-hero__stats--compact">
+      <div class="hero-stat-card">
+        <strong>${conferenceCount}</strong>
+        <span>会议来源</span>
+      </div>
+      <div class="hero-stat-card">
+        <strong>${latestYear}</strong>
+        <span>最新年份</span>
+      </div>
+      <div class="hero-stat-card">
+        <strong>${tagCount}</strong>
+        <span>已选主题</span>
+      </div>
     </div>
   `;
 }
@@ -37,17 +46,16 @@ export function renderSearchToolbar(state) {
     .join("");
 
   return `
-    <section class="toolbar panel toolbar--compact toolbar--workbench">
-      <div class="toolbar-copy toolbar-copy--compact">
+    <section class="panel search-station">
+      <div class="search-station__intro">
         <p class="eyebrow">Explore Papers</p>
-        <h1>搜索论文</h1>
-        <p class="toolbar-text">
-          用会议、年份、关键词和中文主题缩小结果范围。
-          如果你已经知道方向，可以先加主题标签，再进入论文详情继续阅读。
+        <h1>把一个研究问题收窄到能认真读的范围。</h1>
+        <p class="page-hero__lead">
+          先用会议、年份、关键词和中文主题把结果整理成一张更可读的图，再决定哪些论文值得打开详情继续深读。
         </p>
         ${renderStats(bootstrap, filters)}
       </div>
-      <form id="search-form" class="search-form">
+      <form id="search-form" class="search-form search-station__form">
         <label>
           <span>来源</span>
           <select name="conference">
@@ -76,7 +84,7 @@ export function renderSearchToolbar(state) {
         </label>
         <div class="query-field selected-tags-panel">
           <div class="selected-tags-head">
-            <span>当前筛选</span>
+            <span>当前筛选主题</span>
             <button id="add-tag-button" class="button button-chip" type="button" ${loading ? "disabled" : ""}>加入主题</button>
           </div>
           ${
@@ -89,7 +97,7 @@ export function renderSearchToolbar(state) {
                      )
                      .join("")}
                  </div>`
-              : `<p class="tag-empty">先加一两个主题标签，通常能比只输关键词更快收窄结果。</p>`
+              : `<p class="tag-empty">先加一两个主题标签，通常会比只输关键词更快收窄结果。</p>`
           }
         </div>
         <div class="toolbar-actions">

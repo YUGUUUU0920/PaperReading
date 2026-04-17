@@ -134,7 +134,8 @@ function rootAndLatest(lineage) {
 }
 
 export function renderLineagePreview(items = []) {
-  if (!items.length) {
+  const validItems = (items || []).filter((item) => item?.theme && item?.coverage && Array.isArray(item?.nodes));
+  if (!validItems.length) {
     return `
       <section class="panel home-section">
         <div class="section-head">
@@ -164,22 +165,26 @@ export function renderLineagePreview(items = []) {
         <a class="button button-ghost" href="/lineage">打开完整脉络</a>
       </div>
       <div class="lineage-preview-grid">
-        ${items
+        ${validItems
           .map((lineage) => {
             const meta = getThemeMeta(lineage.theme);
             const { root, latest } = rootAndLatest(lineage);
+            const coverage = lineage.coverage || {};
+            const yearCount = coverage.year_count || 0;
+            const paperCount = coverage.paper_count || 0;
+            const conferences = Array.isArray(coverage.conferences) ? coverage.conferences.join(" · ") : "";
             return `
               <a class="lineage-preview-card" data-tone="${meta.tone}" href="/lineage#theme-${toTagId(lineage.theme)}">
                 <div class="atlas-feature-card__head">
                   <span class="pill pill--tag" data-tone="${meta.tone}">${escapeHtml(lineage.theme)}</span>
-                  <span class="lineage-preview-card__meta">${escapeHtml(lineage.coverage.year_count)} 年演化</span>
+                  <span class="lineage-preview-card__meta">${escapeHtml(yearCount)} 年演化</span>
                 </div>
                 <strong>${escapeHtml(lineage.theme)}</strong>
                 <p>${escapeHtml(lineage.story)}</p>
                 <div class="signal-row">
-                  <span class="signal">${escapeHtml(lineage.coverage.paper_count)} 篇相关论文</span>
+                  <span class="signal">${escapeHtml(paperCount)} 篇相关论文</span>
                   ${lineage.focus_tag ? `<span class="signal">当前主干 · ${escapeHtml(lineage.focus_tag)}</span>` : ""}
-                  <span class="signal">${escapeHtml(lineage.coverage.conferences.join(" · "))}</span>
+                  ${conferences ? `<span class="signal">${escapeHtml(conferences)}</span>` : ""}
                 </div>
                 ${
                   root && latest
