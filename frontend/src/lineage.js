@@ -18,6 +18,14 @@ const state = {
   },
 };
 
+function scrollToHashTarget() {
+  const hash = window.location.hash || "";
+  if (!hash.startsWith("#theme-")) return;
+  const target = document.getElementById(hash.slice(1));
+  if (!target) return;
+  target.scrollIntoView({ block: "start", behavior: "auto" });
+}
+
 function renderHero() {
   const coverage = state.payload.coverage || {};
   return renderPageHero({
@@ -67,6 +75,9 @@ async function bootstrap() {
     state.message = error.message;
   }
   render();
+  scrollToHashTarget();
 }
+
+window.addEventListener("hashchange", scrollToHashTarget);
 
 bootstrap();

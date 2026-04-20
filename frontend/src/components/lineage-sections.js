@@ -3,10 +3,10 @@ import { buildLineageUrl, buildPaperUrl, buildSearchUrl } from "../utils/url.js"
 import { getTagTone, getThemeMeta, toTagId } from "../utils/tags.js";
 
 const NODE_WIDTH = 248;
-const NODE_HEIGHT = 170;
+const NODE_HEIGHT = 236;
 const STAGE_PADDING_X = 92;
 const YEAR_GAP = 252;
-const LANE_GAP = 116;
+const LANE_GAP = 276;
 const VERTICAL_PADDING = 92;
 
 function toneOf(theme) {
@@ -101,6 +101,8 @@ function renderNode(node, layout) {
     year: node.year,
   });
   const delay = 160 + (node.year_index || 0) * 120 + Math.abs(node.lane || 0) * 50;
+  const signals = (node.signals || []).slice(0, 2);
+  const tags = (node.tags || []).slice(0, 2);
   return `
     <a
       class="lineage-node lineage-node--${escapeHtml(node.kind)}"
@@ -114,11 +116,12 @@ function renderNode(node, layout) {
       </div>
       <strong>${escapeHtml(node.title_display || node.title)}</strong>
       <p class="lineage-node__authors">${escapeHtml(node.authors_text || "")}</p>
-      ${renderSignals(node.signals || [])}
+      ${renderSignals(signals)}
       <div class="tag-row">
-        ${(node.tags || []).slice(0, 3).map((tag) => renderTagPill(tag)).join("")}
+        ${tags.map((tag) => renderTagPill(tag)).join("")}
       </div>
       <p class="lineage-node__preview summary-preview">${escapeHtml(node.summary_preview || "打开查看这篇论文的中文导读与原文链接。")}</p>
+      <span class="lineage-node__cta">打开论文导读</span>
     </a>
   `;
 }
